@@ -1,0 +1,40 @@
+[60248] 08 May 01:02:37.572 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+[60248] 08 May 01:02:37.573 # Redis version=5.0.14.1, bits=64, commit=ec77f72d, modified=0, pid=60248, just started
+[60248] 08 May 01:02:37.573 # Configuration loaded
+[60248] 08 May 01:02:37.573 # Windows does not support daemonize. Start Redis as service
+[60248] 08 May 01:02:37.575 * Node configuration loaded, I'm b690566c63aad2168298361385cdd043b25ed844
+                _._                                                  
+           _.-``__ ''-._                                             
+      _.-``    `.  `_.  ''-._           Redis 5.0.14.1 (ec77f72d/0) 64 bit
+  .-`` .-```.  ```\/    _.,_ ''-._                                   
+ (    '      ,       .-`  | `,    )     Running in cluster mode
+ |`-._`-...-` __...-.``-._|'` _.-'|     Port: 7771
+ |    `-._   `._    /     _.-'    |     PID: 60248
+  `-._    `-._  `-./  _.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |           http://redis.io        
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |                                  
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+      `-._    `-.__.-'    _.-'                                       
+          `-._        _.-'                                           
+              `-.__.-'                                               
+
+[60248] 08 May 01:02:37.576 # Server initialized
+[60248] 08 May 01:02:37.577 * Ready to accept connections
+[60248] 08 May 01:02:37.577 - 0 clients connected (0 replicas), 1323472 bytes in use
+[60248] 08 May 01:02:39.595 # Error writing to socket fd 13
+[60248] 08 May 01:02:39.595 # Error writing to socket fd 14
+[60248] 08 May 01:02:39.595 # Error writing to socket fd 15
+[60248] 08 May 01:02:39.595 # Error writing to socket fd 12
+[60248] 08 May 01:02:39.595 # Error writing to socket fd 16
+[60248] 08 May 01:02:39.611 # Cluster state changed: ok
+[60248] 08 May 01:02:41.629 # Error writing to socket fd 15
+[60248] 08 May 01:02:41.629 # Error writing to socket fd 16
+[60248] 08 May 01:02:41.629 # Error writing to socket fd 13
+[60248] 08 May 01:02:41.629 # Error writing to socket fd 14
+[60248] 08 May 01:02:41.629 # Error writing to socket fd 12
+[60248] 08 May 01:02:42.516 # User requested shutdown...
+[60248] 08 May 01:02:42.516 * Removing the pid file.
+[60248] 08 May 01:02:42.516 # Redis is now ready to exit, bye bye...

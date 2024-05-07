@@ -1,0 +1,62 @@
+[58672] 08 May 00:56:42.561 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+[58672] 08 May 00:56:42.562 # Redis version=5.0.14.1, bits=64, commit=ec77f72d, modified=0, pid=58672, just started
+[58672] 08 May 00:56:42.562 # Configuration loaded
+[58672] 08 May 00:56:42.562 # Windows does not support daemonize. Start Redis as service
+[58672] 08 May 00:56:42.564 * No cluster configuration found, I'm 475ae87d123e84ab11517a3c0e6be3ac4c63779b
+                _._                                                  
+           _.-``__ ''-._                                             
+      _.-``    `.  `_.  ''-._           Redis 5.0.14.1 (ec77f72d/0) 64 bit
+  .-`` .-```.  ```\/    _.,_ ''-._                                   
+ (    '      ,       .-`  | `,    )     Running in cluster mode
+ |`-._`-...-` __...-.``-._|'` _.-'|     Port: 7773
+ |    `-._   `._    /     _.-'    |     PID: 58672
+  `-._    `-._  `-./  _.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |           http://redis.io        
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |                                  
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+      `-._    `-.__.-'    _.-'                                       
+          `-._        _.-'                                           
+              `-.__.-'                                               
+
+[58672] 08 May 00:56:42.566 # Server initialized
+[58672] 08 May 00:56:42.566 * Ready to accept connections
+[58672] 08 May 00:56:42.566 - 0 clients connected (0 replicas), 1311040 bytes in use
+[58672] 08 May 00:56:42.612 - Accepted 192.168.1.103:54484
+[58672] 08 May 00:56:42.638 # configEpoch set to 3 via CLUSTER SET-CONFIG-EPOCH
+[58672] 08 May 00:56:42.778 - Accepted cluster node 192.168.1.103:54493
+[58672] 08 May 00:56:42.778 # IP address for this node updated to 192.168.1.103
+[58672] 08 May 00:56:42.931 - Accepted cluster node 192.168.1.103:54499
+[58672] 08 May 00:56:43.208 - Accepted cluster node 192.168.1.103:54502
+[58672] 08 May 00:56:43.392 - Accepted cluster node 192.168.1.103:54503
+[58672] 08 May 00:56:43.438 - Accepted cluster node 192.168.1.103:54505
+[58672] 08 May 00:56:44.604 # Cluster state changed: ok
+[58672] 08 May 00:56:44.670 - Client closed connection
+[58672] 08 May 00:56:44.672 - Accepted 192.168.1.103:54524
+[58672] 08 May 00:56:44.675 - Client closed connection
+[58672] 08 May 00:56:45.527 - Accepted 192.168.1.103:54526
+[58672] 08 May 00:56:47.935 - 1 clients connected (0 replicas), 1398112 bytes in use
+[58672] 08 May 00:56:53.298 - 1 clients connected (0 replicas), 1398112 bytes in use
+[58672] 08 May 00:56:57.311 - Accepted 192.168.1.103:54538
+[58672] 08 May 00:56:57.311 - Accepted 192.168.1.103:54539
+[58672] 08 May 00:56:57.343 - Client closed connection
+[58672] 08 May 00:56:57.382 - Accepted 192.168.1.103:54542
+[58672] 08 May 00:56:58.572 - Client closed connection
+[58672] 08 May 00:56:58.572 - Accepted 192.168.1.103:54543
+[58672] 08 May 00:56:58.575 - Client closed connection
+[58672] 08 May 00:56:58.596 - Accepted 192.168.1.103:54546
+[58672] 08 May 00:56:58.667 - 3 clients connected (0 replicas), 1521856 bytes in use
+[58672] 08 May 00:57:04.037 - 3 clients connected (0 replicas), 1439952 bytes in use
+[58672] 08 May 00:57:04.715 - Accepted 192.168.1.103:54557
+[58672] 08 May 00:57:09.412 - 4 clients connected (0 replicas), 1460848 bytes in use
+[58672] 08 May 00:57:14.788 - 4 clients connected (0 replicas), 1460848 bytes in use
+[58672] 08 May 00:57:20.157 - 4 clients connected (0 replicas), 1460848 bytes in use
+[58672] 08 May 00:57:25.269 - Reading from client: 远程主机强迫关闭了一个现有的连接。
+[58672] 08 May 00:57:25.532 - 3 clients connected (0 replicas), 1434776 bytes in use
+[58672] 08 May 00:57:27.354 # Error writing to socket fd 27
+[58672] 08 May 00:57:27.997 # Error writing to socket fd 19
+[58672] 08 May 00:57:28.228 # User requested shutdown...
+[58672] 08 May 00:57:28.228 * Removing the pid file.
+[58672] 08 May 00:57:28.228 # Redis is now ready to exit, bye bye...

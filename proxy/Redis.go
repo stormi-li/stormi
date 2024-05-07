@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
+	"github.com/stormi-li/stormi/dirandfileopt"
+	"github.com/stormi-li/stormi/formatprint"
 )
 
 var rdsClient *redis.Client
@@ -189,68 +192,98 @@ func publish(channel string, msg chan string, shutdown chan struct{}) {
 }
 
 func (redisOpt) CreateSingleNode(port int, desc string) {
-	dir := sh("stormi-serversetdir.sh")
-	res := sh("stormi redis-create " + dir + " single " + Config.Stormi.Ip + " " + strconv.Itoa(port))
-	if res == "1" {
-		node := Config.Stormi.Ip + ":" + strconv.Itoa(port)
-		fmt.Println("redis单例节点", node, "创建成功")
-		s := "\n<redis-node@" + node + "@" + desc + ">"
-		appendToConfigFile(s)
-	} else if res == "-1" {
-		fmt.Println("创建失败，端口已被占用")
-	} else {
-		fmt.Println(res)
+	currentdir, _ := os.Getwd()
+	p := strconv.Itoa(port)
+	path := currentdir + "/app-redis-node/" + p
+	if !dirandfileopt.ExistDir(path) {
+		dirandfileopt.CreateDir(path)
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "bind 0.0.0.0\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "daemonize yes\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "protected-mode no\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "databases 1\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "port "+p+"\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "dir "+path+"\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "always-show-logo yes\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "logfile "+path+"/run.log\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "loglevel verbose\n")
+		formatprint.FormatPrint(formatprint.Yellow, "redis端口:"+p+"节点创建成功, 你可以启动它了")
 	}
+	if Config.Stormi.Ip == "" {
+		formatprint.FormatPrint(formatprint.Magenta, "未配置ip, 当前节点无法加入配置文件")
+		return
+	}
+	dirandfileopt.AppendToConfigFile(currentdir+"/app.config", "<redis-node@"+Config.Stormi.Ip+":"+p+"@"+desc+">\n")
+	formatprint.FormatPrint(formatprint.Yellow, "<redis-node@"+Config.Stormi.Ip+":"+p+"@"+desc+">已载入配置文件")
 }
 
 func (redisOpt) CreateClusterNode(port int, desc string) {
-	dir := sh("stormi-serversetdir.sh")
-	res := sh("stormi redis-create " + dir + " cluster " + Config.Stormi.Ip + " " + strconv.Itoa(port))
-	if res == "1" {
-		node := Config.Stormi.Ip + ":" + strconv.Itoa(port)
-		fmt.Println("redis集群节点", node, "创建成功")
-		s := "\n<redis-nodes@" + node + "@" + desc + ">"
-		appendToConfigFile(s)
-	} else if res == "-1" {
-		fmt.Println("创建失败，端口已被占用")
-	} else {
-		fmt.Println(res)
+	if Config.Stormi.Ip == "" {
+		formatprint.FormatPrint(formatprint.Magenta, "未配置ip, 当前集群节点无法创建")
+		return
 	}
+	currentdir, _ := os.Getwd()
+	p := strconv.Itoa(port)
+	path := currentdir + "/app-redis-cluster/" + p
+	if !dirandfileopt.ExistDir(path) {
+		dirandfileopt.CreateDir(path)
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "bind 0.0.0.0\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "daemonize yes\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "protected-mode no\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "databases 1\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "port "+p+"\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "dir "+path+"\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "always-show-logo yes\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "logfile "+path+"/run.log\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "loglevel verbose\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "cluster-enabled yes\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "cluster-node-timeout 5000\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "cluster-config-file "+path+"/nodes.conf\n")
+		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "replica-announce-ip "+Config.Stormi.Ip+"\n")
+		formatprint.FormatPrint(formatprint.Yellow, "redis端口:"+p+"集群节点创建成功, 你可以启动它了")
+	}
+
+	dirandfileopt.AppendToConfigFile(currentdir+"/app.config", "<redis-nodes@"+Config.Stormi.Ip+":"+p+"@"+desc+">\n")
+	formatprint.FormatPrint(formatprint.Yellow, "<redis-nodes@"+Config.Stormi.Ip+":"+p+"@"+desc+">已载入配置文件")
 }
 
 func (redisOpt) StartSingleNode(port int) {
-	dir := sh("stormi-serversetdir.sh")
-	res := sh("stormi redis-start " + dir + " single " + strconv.Itoa(port))
-	if res == "1" {
-		fmt.Println("redis单例节点启动成功，你可以查看run.log检查redis运行情况")
-	} else if res == "-1" {
-		fmt.Println("redis单例节点启动失败，可能是未创建redis实例")
-	} else if res == "-2" {
-		fmt.Println("redis单例节点启动失败，可能是因为该redis实例已经启动了")
-	} else {
-		fmt.Println(res)
+	currentdir, _ := os.Getwd()
+	p := strconv.Itoa(port)
+	path := currentdir + "/app-redis-node/" + p
+	if !dirandfileopt.ExistDir(path) {
+		formatprint.FormatPrint(formatprint.Magenta, "redis端口:"+p+"节点不存在")
+		return
 	}
+	go func() {
+		os.Remove(path + "/run.log")
+		s := runtime.GOOS
+		if s == "windows" {
+			ExecCommand("start redis-server " + path + "/redis.conf")
+		} else {
+			ExecCommand("nohup redis-server " + path + "/redis.conf >/dev/nul 2>&1 &")
+		}
+	}()
+	time.Sleep(2 * time.Second)
 }
 
 func (redisOpt) StartClusterNode(port int) {
-	dir := sh("stormi-serversetdir.sh")
-	var res string
-	if ConfigMap == nil {
-		res = sh("stormi redis-start " + dir + " cluster " + strconv.Itoa(port) + " " + Config.Stormi.Ip)
-	} else {
-		res = sh("stormi redis-start " + dir + " cluster " + strconv.Itoa(port) + " " + Config.Stormi.Ip + " " + ConfigMap["redis-nodes"][0][0])
+	currentdir, _ := os.Getwd()
+	p := strconv.Itoa(port)
+	path := currentdir + "/app-redis-cluster/" + p
+	if !dirandfileopt.ExistDir(path) {
+		formatprint.FormatPrint(formatprint.Magenta, "redis端口:"+p+"节点不存在")
+		return
 	}
-
-	if res == "1" {
-		fmt.Println("redis集群节点启动成功，你可以查看run.log检查redis运行情况")
-	} else if res == "-1" {
-		fmt.Println("redis集群节点启动失败，可能是未创建redis实例")
-	} else if res == "-2" {
-		fmt.Println("redis集群节点启动失败，可能是因为该redis实例已经启动了")
-	} else {
-		fmt.Println(res)
-	}
-
+	go func() {
+		os.Remove(path + "/run.log")
+		s := runtime.GOOS
+		if s == "windows" {
+			ExecCommand("start redis-server " + path + "/redis.conf")
+		} else {
+			ExecCommand("nohup redis-server " + path + "/redis.conf >/dev/nul 2>&1 &")
+		}
+	}()
+	time.Sleep(2 * time.Second)
 }
 
 func (redisOpt) ShutdownNode(port int) {
@@ -269,27 +302,40 @@ func (redisOpt) CreateCluster(port1, port2, port3, port4, port5, port6 int) {
 		fmt.Println("配置文件中存在集群节点，无需创建新集群")
 		return
 	}
-	RedisProxy.CreateClusterNode(port1, "redis集群节点端口:"+strconv.Itoa(port1))
-	RedisProxy.StartClusterNode(port1)
-	RedisProxy.CreateClusterNode(port2, "redis集群节点端口:"+strconv.Itoa(port2))
-	RedisProxy.StartClusterNode(port2)
-	RedisProxy.CreateClusterNode(port3, "redis集群节点端口:"+strconv.Itoa(port3))
-	RedisProxy.StartClusterNode(port3)
-	RedisProxy.CreateClusterNode(port4, "redis集群节点端口:"+strconv.Itoa(port4))
-	RedisProxy.StartClusterNode(port4)
-	RedisProxy.CreateClusterNode(port5, "redis集群节点端口:"+strconv.Itoa(port5))
-	RedisProxy.StartClusterNode(port5)
-	RedisProxy.CreateClusterNode(port6, "redis集群节点端口:"+strconv.Itoa(port6))
-	RedisProxy.StartClusterNode(port6)
+	go func() {
+		RedisProxy.CreateClusterNode(port1, "redis集群节点端口:"+strconv.Itoa(port1))
+		RedisProxy.StartClusterNode(port1)
+	}()
+	go func() {
+		RedisProxy.CreateClusterNode(port2, "redis集群节点端口:"+strconv.Itoa(port2))
+		RedisProxy.StartClusterNode(port2)
+	}()
+	go func() {
+		RedisProxy.CreateClusterNode(port3, "redis集群节点端口:"+strconv.Itoa(port3))
+		RedisProxy.StartClusterNode(port3)
+	}()
+	go func() {
+		RedisProxy.CreateClusterNode(port4, "redis集群节点端口:"+strconv.Itoa(port4))
+		RedisProxy.StartClusterNode(port4)
+	}()
+	go func() {
+		RedisProxy.CreateClusterNode(port5, "redis集群节点端口:"+strconv.Itoa(port5))
+		RedisProxy.StartClusterNode(port5)
+	}()
+	go func() {
+		RedisProxy.CreateClusterNode(port6, "redis集群节点端口:"+strconv.Itoa(port6))
+		RedisProxy.StartClusterNode(port6)
+	}()
 	nodes := Config.Stormi.Ip + ":" + strconv.Itoa(port1) + " "
 	nodes = nodes + Config.Stormi.Ip + ":" + strconv.Itoa(port2) + " "
 	nodes = nodes + Config.Stormi.Ip + ":" + strconv.Itoa(port3) + " "
 	nodes = nodes + Config.Stormi.Ip + ":" + strconv.Itoa(port4) + " "
 	nodes = nodes + Config.Stormi.Ip + ":" + strconv.Itoa(port5) + " "
 	nodes = nodes + Config.Stormi.Ip + ":" + strconv.Itoa(port6) + " "
-	s := sh("echo yes | $(stormi-scriptdir.sh)/stormi-redis/redis-cli --cluster create --cluster-replicas 1 " + nodes)
-	fmt.Println(s)
-	Utils.appendToYaml(modDir+"/app.yaml", []string{nodes})
+	time.Sleep(1 * time.Second)
+	ExecCommand("echo yes | redis-cli --cluster create --cluster-replicas 1 " + nodes)
+	currentdir, _ := os.Getwd()
+	dirandfileopt.AppendToYaml(currentdir+"/app.yaml", []string{nodes})
 }
 
 func (redisOpt) UploadProto(name string) {

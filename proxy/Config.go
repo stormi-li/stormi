@@ -58,7 +58,8 @@ var ConfigMap map[string][][]string
 var modDir = serverSetDir()
 
 func init() {
-	yamlFile, _ := os.ReadFile(modDir + "/app.yaml")
+	dir, _ := os.Getwd()
+	yamlFile, _ := os.ReadFile(dir + "/app.yaml")
 	yaml.Unmarshal(yamlFile, &Config)
 
 	if Config.Stormi.Redis.Nodes == "" {

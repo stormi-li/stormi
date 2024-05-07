@@ -1,0 +1,54 @@
+[49016] 08 May 00:56:41.141 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+[49016] 08 May 00:56:41.141 # Redis version=5.0.14.1, bits=64, commit=ec77f72d, modified=0, pid=49016, just started
+[49016] 08 May 00:56:41.141 # Configuration loaded
+[49016] 08 May 00:56:41.141 # Windows does not support daemonize. Start Redis as service
+[49016] 08 May 00:56:41.143 * No cluster configuration found, I'm 820f5499b81956abfa2710ac7fca0fb1ae37326b
+                _._                                                  
+           _.-``__ ''-._                                             
+      _.-``    `.  `_.  ''-._           Redis 5.0.14.1 (ec77f72d/0) 64 bit
+  .-`` .-```.  ```\/    _.,_ ''-._                                   
+ (    '      ,       .-`  | `,    )     Running in cluster mode
+ |`-._`-...-` __...-.``-._|'` _.-'|     Port: 7775
+ |    `-._   `._    /     _.-'    |     PID: 49016
+  `-._    `-._  `-./  _.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |           http://redis.io        
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |                                  
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+      `-._    `-.__.-'    _.-'                                       
+          `-._        _.-'                                           
+              `-.__.-'                                               
+
+[49016] 08 May 00:56:41.145 # Server initialized
+[49016] 08 May 00:56:41.145 * Ready to accept connections
+[49016] 08 May 00:56:41.145 - 0 clients connected (0 replicas), 1311040 bytes in use
+[49016] 08 May 00:56:42.614 - Accepted 192.168.1.103:54486
+[49016] 08 May 00:56:42.638 # configEpoch set to 5 via CLUSTER SET-CONFIG-EPOCH
+[49016] 08 May 00:56:42.778 - Accepted cluster node 192.168.1.103:54495
+[49016] 08 May 00:56:42.778 # IP address for this node updated to 192.168.1.103
+[49016] 08 May 00:56:43.208 - Accepted cluster node 192.168.1.103:54501
+[49016] 08 May 00:56:43.438 - Accepted cluster node 192.168.1.103:54507
+[49016] 08 May 00:56:43.500 # Cluster state changed: ok
+[49016] 08 May 00:56:43.854 - Accepted cluster node 192.168.1.103:54515
+[49016] 08 May 00:56:43.900 - Accepted cluster node 192.168.1.103:54516
+[49016] 08 May 00:56:44.670 * Before turning into a replica, using my master parameters to synthesize a cached master: I may be able to synchronize with the new master with just a partial transfer.
+[49016] 08 May 00:56:44.670 - Client closed connection
+[49016] 08 May 00:56:44.671 - Accepted 192.168.1.103:54521
+[49016] 08 May 00:56:44.675 - Client closed connection
+[49016] 08 May 00:56:45.527 * Connecting to MASTER 192.168.1.103:7773
+[49016] 08 May 00:56:45.527 * MASTER <-> REPLICA sync started
+[49016] 08 May 00:56:45.527 * Non blocking connect for SYNC fired the event.
+[49016] 08 May 00:56:45.527 * Master replied to PING, replication can continue...
+[49016] 08 May 00:56:46.602 - 0 clients connected (0 replicas), 1400112 bytes in use
+[49016] 08 May 00:56:51.959 - 0 clients connected (0 replicas), 1400112 bytes in use
+[49016] 08 May 00:56:57.333 - 0 clients connected (0 replicas), 1400112 bytes in use
+[49016] 08 May 00:57:02.700 - 0 clients connected (0 replicas), 1400112 bytes in use
+[49016] 08 May 00:57:08.080 - 0 clients connected (0 replicas), 1400112 bytes in use
+[49016] 08 May 00:57:13.454 - 0 clients connected (0 replicas), 1400112 bytes in use
+[49016] 08 May 00:57:18.825 - 0 clients connected (0 replicas), 1400112 bytes in use
+[49016] 08 May 00:57:24.193 - 0 clients connected (0 replicas), 1400112 bytes in use
+[49016] 08 May 00:57:25.269 # User requested shutdown...
+[49016] 08 May 00:57:25.269 * Removing the pid file.
+[49016] 08 May 00:57:25.269 # Redis is now ready to exit, bye bye...

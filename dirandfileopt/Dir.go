@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/stormi-li/stormi/formatprint"
 )
 
-func CreateDir(name string) {
+func CreateDirInCurrentDir(name string) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Error getting current directory:", err)
@@ -25,6 +27,25 @@ func CreateDir(name string) {
 		fmt.Println("Error creating directory:", err)
 		return
 	}
+	formatprint.FormatPrint(formatprint.Blue, "目录创建成功:"+newDirFullPath)
+}
 
-	fmt.Println("Directory created successfully:", newDirFullPath)
+func CreateDir(dir string) {
+	err := os.MkdirAll(dir, 0755) // 0755 是目录权限（rwxr-xr-x）
+	if err != nil {
+		fmt.Println("Error creating directory:", err)
+		return
+	}
+	formatprint.FormatPrint(formatprint.Blue, "目录创建成功:"+dir)
+}
+
+func ExistDir(path string) bool {
+	dirPath := path
+
+	_, err := os.Stat(dirPath)
+	if os.IsNotExist(err) {
+		return false
+	} else {
+		return true
+	}
 }

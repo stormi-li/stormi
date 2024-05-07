@@ -7,9 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/stormi-li/stormi/formatprint"
 )
 
 type ticker struct {
@@ -156,4 +159,22 @@ func (code) PortProcess(port int) int {
 
 func (code) KillProcess(processid int) {
 	sha("kill " + strconv.Itoa(processid))
+}
+
+func ExecCommand(cmd string) {
+	os := runtime.GOOS
+	var out []byte
+	var err error
+	if os == "windows" {
+		cmd = strings.Replace(cmd, "/", "\\", -1)
+		out, err = exec.Command("cmd", "/C", cmd).CombinedOutput()
+	} else {
+		out, err = exec.Command("bash", "-c", cmd).CombinedOutput()
+	}
+
+	if err != nil {
+		formatprint.FormatPrint(formatprint.Red, err.Error())
+		return
+	}
+	formatprint.FormatPrint(formatprint.Green, "脚本执行结果:\n"+string(out))
 }
