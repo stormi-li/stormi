@@ -1,4 +1,4 @@
-package stormi
+package proxy
 
 import (
 	"context"
