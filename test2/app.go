@@ -88,8 +88,12 @@ func main() {
 	// }
 
 	// fmt.Println("表创建成功")
-	err := mp.DB().Statement.Error
-	fmt.Println(err)
+	// db := mp.DB()
+	// tx := db.Begin()
+
+	// 在事务中创建一个产品
+
+	// 检查事务提交状态
 
 }
 

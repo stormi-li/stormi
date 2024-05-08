@@ -94,3 +94,10 @@ func (mp *MysqlProxy) ConfigProxyD() *ConfigProxy {
 func (mp *MysqlProxy) RedisProxy() *RedisProxy {
 	return mp.cp.rp
 }
+
+func (mp *MysqlProxy) NewDTM(dtxid string) DTM {
+	dtm := DTM{}
+	dtm.db = mp.db.Begin()
+	dtm.uuid = dtxid
+	return dtm
+}
