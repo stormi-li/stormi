@@ -22,6 +22,14 @@ func NewServerProxy(addr any) *ServerProxy {
 	return &sp
 }
 
+func (sp *ServerProxy) ConfigProxy() *ConfigProxy {
+	return sp.cp
+}
+
+func (sp *ServerProxy) RedisProxy() *RedisProxy {
+	return sp.cp.rp
+}
+
 func (sp *ServerProxy) Register(name string, addr string, weight int, t time.Duration) {
 	StormiFmtPrintln(green, sp.rdsAddr, "注册服务启动, 服务名:", name, "地址:", addr, "权重:", weight, "心跳间隔:", t)
 	for i := 0; i < weight; i++ {

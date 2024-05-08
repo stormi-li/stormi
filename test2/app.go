@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/stormi-li/stormi"
 )
@@ -44,15 +43,57 @@ func main() {
 	// configProxy.Register(c)
 	// configProxy.SyncConfig()
 	// select {}
-	sp := stormi.NewServerProxy("192.168.1.103:2221")
-	// sp.Register("server", "123.13.31.13:434", 3, 3*time.Second)
-	// time.Sleep(2 * time.Second)
-	sp.Discover("server", 100*time.Millisecond, func(addr string) error {
-		fmt.Println(addr)
-		return nil
-	})
-	select {}
+	// sp := stormi.NewServerProxy("192.168.1.103:2221")
+	// // sp.Register("server", "123.13.31.13:434", 3, 3*time.Second)
+	// // time.Sleep(2 * time.Second)
+	// sp.Discover("server", 100*time.Millisecond, func(addr string) error {
+	// 	fmt.Println(addr)
+	// 	return nil
+	// })
+	// select {}
+	// rp := stormi.NewRedisProxy("192.168.1.103:2221")
+	// go func() {
+	// 	l := rp.NewLock("lock")
+	// 	for {
+	// 		l.Lock()
+	// 		fmt.Println("1")
+	// 		time.Sleep(2 * time.Second)
+	// 		l.UnLock()
+	// 		time.Sleep(100 * time.Millisecond)
 
+	// 	}
+
+	// }()
+	// go func() {
+	// 	l := rp.NewLock("lock")
+	// 	for {
+	// 		l.Lock()
+	// 		fmt.Println("2")
+	// 		time.Sleep(2 * time.Second)
+	// 		l.UnLock()
+	// 		time.Sleep(100 * time.Millisecond)
+
+	// 	}
+
+	// }()
+	// select {}
+
+	mp := stormi.NewMysqlProxy("192.168.1.103:2221")
+	// mp.Register(1234, "192.168.37.132:3306", "root", "123456", "stormi")
+	mp.ConnectByNodeId(1234)
+	err := mp.DB().AutoMigrate(&User{})
+	if err != nil {
+		fmt.Println("创建表时出错:", err)
+		return
+	}
+
+	fmt.Println("表创建成功")
+}
+
+type User struct {
+	ID   uint
+	Name string
+	Age  uint
 }
 
 func test1() {

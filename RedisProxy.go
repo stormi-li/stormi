@@ -272,3 +272,20 @@ func (rp *RedisProxy) Publish(channel string, msg chan string, shutdown chan str
 		}
 	}
 }
+
+func (rp *RedisProxy) RegisterSingle(nodeId int, addr string) {
+	cp := NewConfigProxy(rp.addrs)
+	c := cp.NewConfig()
+	c.Name = "redis-single"
+	c.Addr = addr
+	c.NodeId = nodeId
+	cp.Register(c)
+}
+
+func (rp *RedisProxy) RegisterCluster(addr string) {
+	cp := NewConfigProxy(rp.addrs)
+	c := cp.NewConfig()
+	c.Name = "redis-cluster"
+	c.Addr = addr
+	cp.Register(c)
+}

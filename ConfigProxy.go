@@ -47,18 +47,16 @@ func (c Config) ToJsonStr() string {
 	return string(bs)
 }
 
-func NewConfig() Config {
-	var c = Config{}
-	c.UUID = uuid.NewString()
-	return c
-}
-
 type ConfigProxy struct {
 	rp             *RedisProxy
 	rdsAddr        string
 	configHandlers []ConfigHandler
 	ConfigSet      map[string]map[string]*Config
 	count          int
+}
+
+func (cp ConfigProxy) RedisProxy() *RedisProxy {
+	return cp.rp
 }
 
 func NewConfigProxy(addr any) *ConfigProxy {
