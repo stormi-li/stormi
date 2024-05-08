@@ -81,13 +81,15 @@ func main() {
 	mp := stormi.NewMysqlProxy("192.168.1.103:2221")
 	// mp.Register(1234, "192.168.37.132:3306", "root", "123456", "stormi")
 	mp.ConnectByNodeId(1234)
-	err := mp.DB().AutoMigrate(&User{})
-	if err != nil {
-		fmt.Println("创建表时出错:", err)
-		return
-	}
+	// err := mp.DB().AutoMigrate(&User{})
+	// if err != nil {
+	// 	fmt.Println("创建表时出错:", err)
+	// 	return
+	// }
 
-	fmt.Println("表创建成功")
+	// fmt.Println("表创建成功")
+	// db:=mp.DB().Begin()
+
 }
 
 type User struct {
