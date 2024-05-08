@@ -88,7 +88,8 @@ func main() {
 	// }
 
 	// fmt.Println("表创建成功")
-	// db:=mp.DB().Begin()
+	err := mp.DB().Statement.Error
+	fmt.Println(err)
 
 }
 
