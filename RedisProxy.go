@@ -23,12 +23,12 @@ func redisInit(addr interface{}) bool {
 		rdsC := redis.NewClient(&redis.Options{
 			Addr: a,
 		})
-		_, err := rdsClient.ClusterNodes(context.Background()).Result()
+		_, err := rdsC.ClusterNodes(context.Background()).Result()
 		if err == nil {
 			rdsCC := redis.NewClusterClient(&redis.ClusterOptions{
 				Addrs: []string{a},
 			})
-			res, _ := rdsClusterClient.Set(context.Background(), "stormi", "stormi", 0).Result()
+			res, _ := rdsCC.Set(context.Background(), "stormi", "stormi", 0).Result()
 			if res != "" {
 				isCluster = true
 				isConnected = true
@@ -37,7 +37,7 @@ func redisInit(addr interface{}) bool {
 				return true
 			}
 		}
-		res, _ := rdsClient.Set(context.Background(), "stormi", "stormi", 0).Result()
+		res, _ := rdsC.Set(context.Background(), "stormi", "stormi", 0).Result()
 		if res != "" {
 			isConnected = true
 			StormiFmtPrintln(yellow, "成功连接到redis单例:", a)
@@ -51,7 +51,7 @@ func redisInit(addr interface{}) bool {
 			Addrs: s,
 		})
 		isCluster = true
-		res, _ := rdsClusterClient.Set(context.Background(), "stormi", "stormi", 0).Result()
+		res, _ := rdsCC.Set(context.Background(), "stormi", "stormi", 0).Result()
 		if res != "" {
 			isCluster = true
 			isConnected = true
@@ -64,27 +64,27 @@ func redisInit(addr interface{}) bool {
 	return false
 }
 
-func (RedisOpt) RedisClient(id int) *redis.Client {
-	if !isConnected {
-		StormiFmtPrintln(red, "当前未连接到任何redis节点")
-	}
-	if isCluster {
-		StormiPrintln(magenta, "当前redis为集群模式, 建议使用redis集群")
-	}
-	if id == 0 {
-		return rdsClient
-	}
-	cs := ConfigSet["redis-single"]
-	for _, c := range cs {
-		if c.NodeId == id {
-			return redis.NewClient(&redis.Options{
-				Addr: c.Addr,
-			})
-		}
-	}
-	StormiPrint(magenta, "无法在配置集里面找到该NodeId的节点, 已返回当前redis节点")
-	return rdsClient
-}
+// func (RedisOpt) RedisClient(id int) *redis.Client {
+// 	if !isConnected {
+// 		StormiFmtPrintln(red, "当前未连接到任何redis节点")
+// 	}
+// 	if isCluster {
+// 		StormiPrintln(magenta, "当前redis为集群模式, 建议使用redis集群")
+// 	}
+// 	if id == 0 {
+// 		return rdsClient
+// 	}
+// 	cs := ConfigSet["redis-single"]
+// 	for _, c := range cs {
+// 		if c.NodeId == id {
+// 			return redis.NewClient(&redis.Options{
+// 				Addr: c.Addr,
+// 			})
+// 		}
+// 	}
+// 	StormiPrint(magenta, "无法在配置集里面找到该NodeId的节点, 已返回当前redis节点")
+// 	return rdsClient
+// }
 
 func (RedisOpt) RedisClusterClient() *redis.ClusterClient {
 	if !isConnected {

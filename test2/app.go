@@ -1,6 +1,10 @@
 package main
 
-import "github.com/stormi-li/stormi"
+import (
+	"fmt"
+
+	"github.com/stormi-li/stormi"
+)
 
 func main() {
 	// stormi.RedisProxy.CreateSingleNode(3331, "single node")
@@ -23,7 +27,27 @@ func main() {
 	// res := stormi.PullConfig("fsf")
 	// stormi.WriteToConfigFile(res)
 	// res1 := stormi.DecoderConfigFile()
-	configProxy := stormi.NewConfigProxy("192.168.1.103:2221")
-	configProxy.Info()
+	configProxy := stormi.NewConfigProxy("192.168.1.103:3331")
+	// configProxy.NotifySync("同步新地址")
 
+	// test1()
+	// configProxy.AddConfigHandler("mysql", func(cmap map[string]stormi.Config) {
+	// 	for name, c := range cmap {
+	// 		fmt.Println(name, c.Addr)
+	// 	}
+	// })
+	configProxy.Info()
+	c := configProxy.NewConfig()
+	c.Name = "mysql"
+	c.Addr = "123.13.31.31:43"
+	configProxy.RegisterConfig(c)
+	configProxy.SyncConfig()
+	select {}
+}
+
+func test1() {
+	configProxy := stormi.NewConfigProxy("192.168.1.103:2221")
+	configProxy.SetConfigSyncNotficationHandler(func(configProxy stormi.ConfigProxy, msg string) {
+		fmt.Println("不同步")
+	})
 }
