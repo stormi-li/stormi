@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/stormi-li/stormi"
 )
@@ -26,23 +27,32 @@ func main() {
 	// stormi.RegisterConfig(cfg)
 	// res := stormi.PullConfig("fsf")
 	// stormi.WriteToConfigFile(res)
-	// res1 := stormi.DecoderConfigFile()
-	configProxy := stormi.NewConfigProxy("192.168.1.103:3331")
-	// configProxy.NotifySync("同步新地址")
+	// // res1 := stormi.DecoderConfigFile()
+	// configProxy := stormi.NewConfigProxy("192.168.1.103:3331")
+	// // configProxy.NotifySync("同步新地址")
 
-	// test1()
-	// configProxy.AddConfigHandler("mysql", func(cmap map[string]stormi.Config) {
-	// 	for name, c := range cmap {
-	// 		fmt.Println(name, c.Addr)
-	// 	}
-	// })
-	configProxy.Info()
-	c := configProxy.NewConfig()
-	c.Name = "mysql"
-	c.Addr = "123.13.31.31:43"
-	configProxy.RegisterConfig(c)
-	configProxy.SyncConfig()
+	// // test1()
+	// // configProxy.AddConfigHandler("mysql", func(cmap map[string]stormi.Config) {
+	// // 	for name, c := range cmap {
+	// // 		fmt.Println(name, c.Addr)
+	// // 	}
+	// // })
+	// configProxy.Info()
+	// c := configProxy.NewConfig()
+	// c.Name = "mysql"
+	// c.Addr = "123.13.31.31:43"
+	// configProxy.Register(c)
+	// configProxy.SyncConfig()
+	// select {}
+	sp := stormi.NewServerProxy("192.168.1.103:2221")
+	// sp.Register("server", "123.13.31.13:434", 3, 3*time.Second)
+	// time.Sleep(2 * time.Second)
+	sp.Discover("server", 100*time.Millisecond, func(addr string) error {
+		fmt.Println(addr)
+		return nil
+	})
 	select {}
+
 }
 
 func test1() {

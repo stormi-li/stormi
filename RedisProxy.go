@@ -8,16 +8,16 @@ import (
 	"github.com/google/uuid"
 )
 
-var rdsClient *redis.Client
-var rdsClusterClient *redis.ClusterClient
-var isCluster bool
-var isConnected bool
+type RedisProxy struct {
+	addrs            []string
+	rdsClient        *redis.Client
+	rdsClusterClient *redis.ClusterClient
+	isCluster        bool
+	isConnected      bool
+}
 
-type RedisOpt struct{}
-
-var RedisProxy RedisOpt
-
-func redisInit(addr interface{}) bool {
+func NewRedisProxy(addr interface{}) *RedisProxy {
+	p := RedisProxy{}
 	a, ok := addr.(string)
 	if ok {
 		rdsC := redis.NewClient(&redis.Options{
@@ -30,19 +30,21 @@ func redisInit(addr interface{}) bool {
 			})
 			res, _ := rdsCC.Set(context.Background(), "stormi", "stormi", 0).Result()
 			if res != "" {
-				isCluster = true
-				isConnected = true
-				StormiFmtPrintln(yellow, "成功连接到redis集群:", a)
-				rdsClusterClient = rdsCC
-				return true
+				p.isCluster = true
+				p.isConnected = true
+				StormiFmtPrintln(yellow, a, "成功连接到redis集群:", a)
+				p.rdsClusterClient = rdsCC
+				p.addrs = []string{a}
+				return &p
 			}
 		}
 		res, _ := rdsC.Set(context.Background(), "stormi", "stormi", 0).Result()
 		if res != "" {
-			isConnected = true
-			StormiFmtPrintln(yellow, "成功连接到redis单例:", a)
-			rdsClient = rdsC
-			return true
+			p.isConnected = true
+			StormiFmtPrintln(yellow, a, "成功连接到redis单例:", a)
+			p.rdsClient = rdsC
+			p.addrs = []string{a}
+			return &p
 		}
 	}
 	s, ok := addr.([]string)
@@ -50,73 +52,68 @@ func redisInit(addr interface{}) bool {
 		rdsCC := redis.NewClusterClient(&redis.ClusterOptions{
 			Addrs: s,
 		})
-		isCluster = true
+		p.isCluster = true
 		res, _ := rdsCC.Set(context.Background(), "stormi", "stormi", 0).Result()
 		if res != "" {
-			isCluster = true
-			isConnected = true
-			StormiFmtPrintln(yellow, "成功连接到redis集群:", s)
-			rdsClusterClient = rdsCC
-			return true
+			p.isCluster = true
+			p.isConnected = true
+			StormiFmtPrintln(yellow, s[0], "成功连接到redis集群:", s)
+			p.rdsClusterClient = rdsCC
+			p.addrs = s
+			return &p
 		}
 	}
 	StormiFmtPrintln(magenta, "连接redis失败", addr)
-	return false
+	return nil
 }
 
-// func (RedisOpt) RedisClient(id int) *redis.Client {
-// 	if !isConnected {
-// 		StormiFmtPrintln(red, "当前未连接到任何redis节点")
-// 	}
-// 	if isCluster {
-// 		StormiPrintln(magenta, "当前redis为集群模式, 建议使用redis集群")
-// 	}
-// 	if id == 0 {
-// 		return rdsClient
-// 	}
-// 	cs := ConfigSet["redis-single"]
-// 	for _, c := range cs {
-// 		if c.NodeId == id {
-// 			return redis.NewClient(&redis.Options{
-// 				Addr: c.Addr,
-// 			})
-// 		}
-// 	}
-// 	StormiPrint(magenta, "无法在配置集里面找到该NodeId的节点, 已返回当前redis节点")
-// 	return rdsClient
-// }
-
-func (RedisOpt) RedisClusterClient() *redis.ClusterClient {
-	if !isConnected {
+func (rp *RedisProxy) RedisClient(id int) *redis.Client {
+	if !rp.isConnected {
 		StormiFmtPrintln(red, "当前未连接到任何redis节点")
 	}
-	if !isCluster {
-		StormiPrintln(magenta, "当前redis为单例模式, 无法使用redis集群")
+	if rp.isCluster {
+		StormiFmtPrintln(magenta, rp.addrs[0], "当前redis为集群模式, 建议使用redis集群")
 	}
-	return rdsClusterClient
+	if id == 0 {
+		return rp.rdsClient
+	}
+	StormiFmtPrintln(magenta, rp.addrs[0], "无法在配置集里面找到该NodeId的节点, 已返回当前redis节点")
+	return rp.rdsClient
 }
 
-func (RedisOpt) RedisSingleNodeInfo() {
-	opt := rdsClient.Options()
-	StormiPrintln(cyan, "当前redis节点地址:"+opt.Addr)
+func (rp *RedisProxy) RedisClusterClient() *redis.ClusterClient {
+	if !rp.isConnected {
+		StormiFmtPrintln(red, "当前未连接到任何redis节点")
+	}
+	if !rp.isCluster {
+		StormiFmtPrintln(magenta, rp.addrs[0], "当前redis为单例模式, 无法使用redis集群")
+	}
+	return rp.rdsClusterClient
 }
 
-func (RedisOpt) RedisClusterNodesInfo() {
-	redisNodes, _ := rdsClusterClient.ClusterNodes(context.Background()).Result()
-	StormiPrintln(cyan, "当前redis集群信息:\n"+redisNodes)
+func (rp *RedisProxy) RedisSingleNodeInfo() {
+	opt := rp.rdsClient.Options()
+	StormiFmtPrintln(cyan, rp.addrs[0], "当前redis节点地址:"+opt.Addr)
+}
+
+func (rp *RedisProxy) RedisClusterNodesInfo() {
+	redisNodes, _ := rp.rdsClusterClient.ClusterNodes(context.Background()).Result()
+	StormiFmtPrintln(cyan, rp.addrs[0], "当前redis集群信息:\n"+redisNodes)
 }
 
 type DLock struct {
 	uuid     string
 	lockName string
 	stop     chan struct{}
+	rp       *RedisProxy
 }
 
-func (RedisOpt) NewLock(lockName string) *DLock {
+func (rp *RedisProxy) NewLock(lockName string) *DLock {
 	dLock := DLock{}
 	dLock.lockName = lockName
 	dLock.uuid = uuid.New().String()
 	dLock.stop = make(chan struct{})
+	dLock.rp = rp
 	return &dLock
 }
 
@@ -124,10 +121,10 @@ func (l *DLock) Lock() {
 	ctx := context.Background()
 	for {
 		var ok bool
-		if isCluster {
-			ok, _ = rdsClusterClient.SetNX(ctx, l.lockName, l.uuid, 3*time.Second).Result()
+		if l.rp.isCluster {
+			ok, _ = l.rp.rdsClusterClient.SetNX(ctx, l.lockName, l.uuid, 3*time.Second).Result()
 		} else {
-			ok, _ = rdsClient.SetNX(ctx, l.lockName, l.uuid, 3*time.Second).Result()
+			ok, _ = l.rp.rdsClient.SetNX(ctx, l.lockName, l.uuid, 3*time.Second).Result()
 		}
 
 		if ok {
@@ -137,10 +134,10 @@ func (l *DLock) Lock() {
 				for {
 					select {
 					case <-ticker.C:
-						if isCluster {
-							ok, _ = rdsClusterClient.SetNX(ctx, l.lockName, l.uuid, 3*time.Second).Result()
+						if l.rp.isCluster {
+							ok, _ = l.rp.rdsClusterClient.SetNX(ctx, l.lockName, l.uuid, 3*time.Second).Result()
 						} else {
-							ok, _ = rdsClient.SetNX(ctx, l.lockName, l.uuid, 3*time.Second).Result()
+							ok, _ = l.rp.rdsClient.SetNX(ctx, l.lockName, l.uuid, 3*time.Second).Result()
 						}
 					case <-l.stop:
 						return
@@ -149,7 +146,7 @@ func (l *DLock) Lock() {
 			}()
 			break
 		} else {
-			RedisProxy.Wait(l.lockName, 3*time.Second)
+			l.rp.Wait(l.lockName, 3*time.Second)
 		}
 	}
 }
@@ -158,36 +155,36 @@ func (l *DLock) UnLock() {
 	l.stop <- struct{}{}
 	ctx := context.Background()
 	var uuid string
-	if isCluster {
-		uuid, _ = rdsClusterClient.Get(ctx, l.lockName).Result()
+	if l.rp.isCluster {
+		uuid, _ = l.rp.rdsClusterClient.Get(ctx, l.lockName).Result()
 	} else {
-		uuid, _ = rdsClient.Get(ctx, l.lockName).Result()
+		uuid, _ = l.rp.rdsClient.Get(ctx, l.lockName).Result()
 	}
 
 	if uuid == l.uuid {
-		if isCluster {
-			rdsClusterClient.Del(ctx, l.lockName)
+		if l.rp.isCluster {
+			l.rp.rdsClusterClient.Del(ctx, l.lockName)
 		} else {
-			rdsClient.Del(ctx, l.lockName)
+			l.rp.rdsClient.Del(ctx, l.lockName)
 		}
-		RedisProxy.Notify(l.lockName, "unlock")
+		l.rp.Notify(l.lockName, "unlock")
 	}
 }
 
-func (RedisOpt) Notify(channel, msg string) {
-	if isCluster {
-		rdsClusterClient.Publish(context.Background(), channel, msg)
+func (rp *RedisProxy) Notify(channel, msg string) {
+	if rp.isCluster {
+		rp.rdsClusterClient.Publish(context.Background(), channel, msg)
 	} else {
-		rdsClient.Publish(context.Background(), channel, msg)
+		rp.rdsClient.Publish(context.Background(), channel, msg)
 	}
 }
 
-func (RedisOpt) Wait(channel string, timeout time.Duration) string {
+func (rp *RedisProxy) Wait(channel string, timeout time.Duration) string {
 	var pubsub *redis.PubSub
-	if isCluster {
-		pubsub = rdsClusterClient.Subscribe(context.Background(), channel)
+	if rp.isCluster {
+		pubsub = rp.rdsClusterClient.Subscribe(context.Background(), channel)
 	} else {
-		pubsub = rdsClient.Subscribe(context.Background(), channel)
+		pubsub = rp.rdsClient.Subscribe(context.Background(), channel)
 	}
 	defer pubsub.Close()
 	ch := pubsub.Channel()
@@ -201,20 +198,21 @@ func (RedisOpt) Wait(channel string, timeout time.Duration) string {
 	}
 }
 
-func (RedisOpt) CycleWait(channel string, timeout time.Duration, handler func(msg string)) {
+func (rp *RedisProxy) CycleWait(channel string, timeout time.Duration, handler func(msg string)) {
+	t := timeout
 	var pubsub *redis.PubSub
-	if isCluster {
-		pubsub = rdsClusterClient.Subscribe(context.Background(), channel)
+	if rp.isCluster {
+		pubsub = rp.rdsClusterClient.Subscribe(context.Background(), channel)
 	} else {
-		pubsub = rdsClient.Subscribe(context.Background(), channel)
+		pubsub = rp.rdsClient.Subscribe(context.Background(), channel)
 	}
 	defer pubsub.Close()
 	c := pubsub.Channel()
-	timer := time.NewTicker(timeout)
+	timer := time.NewTicker(t)
 	for {
 		select {
 		case <-timer.C:
-			timer = time.NewTicker(timeout)
+			timer = time.NewTicker(t)
 			handler("")
 		case msg := <-c:
 			handler(msg.Payload)
@@ -222,15 +220,15 @@ func (RedisOpt) CycleWait(channel string, timeout time.Duration, handler func(ms
 	}
 }
 
-func (RedisOpt) GetSubChannel(c string) <-chan *redis.Message {
-	if isCluster {
-		return rdsClusterClient.Subscribe(context.Background(), c).Channel()
+func (rp *RedisProxy) GetSubChannel(c string) <-chan *redis.Message {
+	if rp.isCluster {
+		return rp.rdsClusterClient.Subscribe(context.Background(), c).Channel()
 	} else {
-		return rdsClient.Subscribe(context.Background(), c).Channel()
+		return rp.rdsClient.Subscribe(context.Background(), c).Channel()
 	}
 }
 
-func (RedisOpt) Subscribe(c <-chan *redis.Message, timeout time.Duration, handler func(msg string) int) int {
+func (rp *RedisProxy) Subscribe(c <-chan *redis.Message, timeout time.Duration, handler func(msg string) int) int {
 	if timeout != 0 {
 		timer := time.NewTicker(timeout)
 		for {
@@ -257,15 +255,15 @@ func (RedisOpt) Subscribe(c <-chan *redis.Message, timeout time.Duration, handle
 	}
 }
 
-func (RedisOpt) Publish(channel string, msg chan string, shutdown chan struct{}) {
+func (rp *RedisProxy) Publish(channel string, msg chan string, shutdown chan struct{}) {
 	ctx := context.Background()
 	for {
 		select {
 		case m := <-msg:
-			if isCluster {
-				rdsClusterClient.Publish(ctx, channel, m)
+			if rp.isCluster {
+				rp.rdsClusterClient.Publish(ctx, channel, m)
 			} else {
-				rdsClient.Publish(ctx, channel, m)
+				rp.rdsClient.Publish(ctx, channel, m)
 			}
 		case <-shutdown:
 			return
