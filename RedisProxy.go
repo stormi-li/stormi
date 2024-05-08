@@ -20,12 +20,12 @@ var RedisProxy RedisOpt
 func redisInit(addr interface{}) bool {
 	a, ok := addr.(string)
 	if ok {
-		rdsClient = redis.NewClient(&redis.Options{
+		rdsC := redis.NewClient(&redis.Options{
 			Addr: a,
 		})
 		_, err := rdsClient.ClusterNodes(context.Background()).Result()
 		if err == nil {
-			rdsClusterClient = redis.NewClusterClient(&redis.ClusterOptions{
+			rdsCC := redis.NewClusterClient(&redis.ClusterOptions{
 				Addrs: []string{a},
 			})
 			res, _ := rdsClusterClient.Set(context.Background(), "stormi", "stormi", 0).Result()
@@ -33,6 +33,7 @@ func redisInit(addr interface{}) bool {
 				isCluster = true
 				isConnected = true
 				StormiFmtPrintln(yellow, "成功连接到redis集群:", a)
+				rdsClusterClient = rdsCC
 				return true
 			}
 		}
@@ -40,12 +41,13 @@ func redisInit(addr interface{}) bool {
 		if res != "" {
 			isConnected = true
 			StormiFmtPrintln(yellow, "成功连接到redis单例:", a)
+			rdsClient = rdsC
 			return true
 		}
 	}
 	s, ok := addr.([]string)
 	if ok {
-		rdsClusterClient = redis.NewClusterClient(&redis.ClusterOptions{
+		rdsCC := redis.NewClusterClient(&redis.ClusterOptions{
 			Addrs: s,
 		})
 		isCluster = true
@@ -54,6 +56,7 @@ func redisInit(addr interface{}) bool {
 			isCluster = true
 			isConnected = true
 			StormiFmtPrintln(yellow, "成功连接到redis集群:", s)
+			rdsClusterClient = rdsCC
 			return true
 		}
 	}
@@ -62,13 +65,16 @@ func redisInit(addr interface{}) bool {
 }
 
 func (RedisOpt) RedisClient(id int) *redis.Client {
+	if !isConnected {
+		StormiFmtPrintln(red, "当前未连接到任何redis节点")
+	}
 	if isCluster {
 		StormiPrintln(magenta, "当前redis为集群模式, 建议使用redis集群")
 	}
 	if id == 0 {
 		return rdsClient
 	}
-	cs := ConfigMap["redis-single"]
+	cs := ConfigSet["redis-single"]
 	for _, c := range cs {
 		if c.NodeId == id {
 			return redis.NewClient(&redis.Options{
@@ -81,6 +87,9 @@ func (RedisOpt) RedisClient(id int) *redis.Client {
 }
 
 func (RedisOpt) RedisClusterClient() *redis.ClusterClient {
+	if !isConnected {
+		StormiFmtPrintln(red, "当前未连接到任何redis节点")
+	}
 	if !isCluster {
 		StormiPrintln(magenta, "当前redis为单例模式, 无法使用redis集群")
 	}
@@ -205,13 +214,19 @@ func (RedisOpt) CycleWait(channel string, timeout time.Duration, handler func(ms
 	for {
 		select {
 		case <-timer.C:
-			if timeout != 0 {
-				handler("")
-				timer = time.NewTicker(timeout)
-			}
+			timer = time.NewTicker(timeout)
+			handler("")
 		case msg := <-c:
 			handler(msg.Payload)
 		}
+	}
+}
+
+func (RedisOpt) GetSubChannel(c string) <-chan *redis.Message {
+	if isCluster {
+		return rdsClusterClient.Subscribe(context.Background(), c).Channel()
+	} else {
+		return rdsClient.Subscribe(context.Background(), c).Channel()
 	}
 }
 

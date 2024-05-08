@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 )
 
@@ -12,28 +11,6 @@ type FileOpt struct {
 }
 
 var FileProxy FileOpt
-
-func (FileOpt) ReadConfigFile(filename string) map[string]map[string]Config {
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		StormiFmtPrintln(magenta, "读取文件失败："+err.Error())
-		return nil
-	}
-	re := regexp.MustCompile(`<([^>]*)>`)
-	matches := re.FindAllStringSubmatch(string(content), -1)
-	var matchesContent []string
-	for _, match := range matches {
-		if len(match) > 1 {
-			matchesContent = append(matchesContent, match[1])
-		}
-	}
-	var configMap = map[string]map[string]Config{}
-	for _, line := range matchesContent {
-		name, config := configProxy.jsonStringToConfig(line)
-		configMap[name][config.Addr+"@"+config.UUID] = config
-	}
-	return configMap
-}
 
 func (FileOpt) WriteToFile(filename string, ss []string) {
 	FileProxy.CreateFileNX(filename)
