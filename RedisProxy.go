@@ -220,15 +220,17 @@ func (rp *RedisProxy) CycleWait(channel string, timeout time.Duration, handler f
 	}
 }
 
-func (rp *RedisProxy) GetSubChannel(c string) <-chan *redis.Message {
+func (rp *RedisProxy) GetPubSub(c string) *redis.PubSub {
 	if rp.isCluster {
-		return rp.rdsClusterClient.Subscribe(context.Background(), c).Channel()
+		return rp.rdsClusterClient.Subscribe(context.Background(), c)
 	} else {
-		return rp.rdsClient.Subscribe(context.Background(), c).Channel()
+		return rp.rdsClient.Subscribe(context.Background(), c)
 	}
 }
 
-func (rp *RedisProxy) Subscribe(c <-chan *redis.Message, timeout time.Duration, handler func(msg string) int) int {
+func (rp *RedisProxy) Subscribe(pubsub *redis.PubSub, timeout time.Duration, handler func(msg string) int) int {
+	defer pubsub.Close()
+	c := pubsub.Channel()
 	if timeout != 0 {
 		timer := time.NewTicker(timeout)
 		for {

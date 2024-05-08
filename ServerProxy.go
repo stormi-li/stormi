@@ -8,14 +8,10 @@ import (
 )
 
 type ServerProxy struct {
-	name       string
-	serverAddr string
-	weight     int
-	configs    []Config
-	rdsAddr    string
-	cp         *ConfigProxy
-	sdreg      chan struct{}
-	sddis      chan struct{}
+	configs []Config
+	rdsAddr string
+	cp      *ConfigProxy
+	sdreg   chan struct{}
 }
 
 func NewServerProxy(addr any) *ServerProxy {
@@ -51,7 +47,7 @@ func (sp *ServerProxy) Register(name string, addr string, weight int, t time.Dur
 	}()
 	go func() {
 		StormiFmtPrintln(green, sp.rdsAddr, "开始监听客户端同步请求")
-		sp.cp.rp.Subscribe(sp.cp.rp.GetSubChannel(name+addr+"server"), 0, func(msg string) int {
+		sp.cp.rp.Subscribe(sp.cp.rp.GetPubSub(name+addr+"server"), 0, func(msg string) int {
 			StormiFmtPrintln(yellow, sp.rdsAddr, "接收到客户端同步请求:", msg)
 			msgc <- t.String()
 			return 0
@@ -99,10 +95,10 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 		}
 	}
 	pubName := c.Name + c.Addr
-	ch := sp.cp.rp.GetSubChannel(pubName)
+	pubsub := sp.cp.rp.GetPubSub(pubName)
 	sp.cp.rp.Notify(pubName+"server", getIp())
 	var heart string
-	res := sp.cp.rp.Subscribe(ch, t, func(msg string) int {
+	res := sp.cp.rp.Subscribe(pubsub, t, func(msg string) int {
 		if msg != "" {
 			heart = msg
 			return 1
@@ -123,7 +119,7 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 			sp.Discover(name, t, handler)
 			return
 		}
-		if handler(c.Addr) != nil {
+		if err = handler(c.Addr); err != nil {
 			StormiFmtPrintln(magenta, sp.rdsAddr, "服务处理错误: ", err.Error(), "重新拉取新服务")
 			sp.Discover(name, t, handler)
 			return

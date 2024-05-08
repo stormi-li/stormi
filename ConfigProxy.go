@@ -247,7 +247,6 @@ func (cp *ConfigProxy) SyncConfig() {
 		}
 	}
 	StormiFmtPrintln(cyan, cp.rdsAddr, "第", cp.count+1, "次配置同步结束")
-	cp.PrintConfigSet()
 	cp.count++
 }
 
@@ -258,6 +257,7 @@ func (cp ConfigProxy) autoSyncConfig() {
 	}
 	StormiFmtPrintln(yellow, cp.rdsAddr, "初始配置同步开始")
 	cp.SyncConfig()
+	cp.PrintConfigSet()
 	go func() {
 		StormiFmtPrintln(yellow, cp.rdsAddr, "配置同步协程启动")
 		cp.rp.CycleWait(configchannel, 1*time.Hour, func(msg string) {
