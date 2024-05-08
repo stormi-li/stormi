@@ -1,0 +1,138 @@
+package stormi
+
+import (
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+)
+
+type FileOpt struct {
+}
+
+var FileProxy FileOpt
+
+func (FileOpt) ReadConfigFile(filename string) map[string]map[string]Config {
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		StormiFmtPrintln(magenta, "读取文件失败："+err.Error())
+		return nil
+	}
+	re := regexp.MustCompile(`<([^>]*)>`)
+	matches := re.FindAllStringSubmatch(string(content), -1)
+	var matchesContent []string
+	for _, match := range matches {
+		if len(match) > 1 {
+			matchesContent = append(matchesContent, match[1])
+		}
+	}
+	var configMap = map[string]map[string]Config{}
+	for _, line := range matchesContent {
+		name, config := configProxy.jsonStringToConfig(line)
+		configMap[name][config.Addr+"@"+config.UUID] = config
+	}
+	return configMap
+}
+
+func (FileOpt) WriteToFile(filename string, ss []string) {
+	FileProxy.CreateFileNX(filename)
+	// FileProxy.TruncateFile(filename)
+	for _, s := range ss {
+		FileProxy.AppendToFile(filename, s)
+	}
+}
+
+func (FileOpt) TruncateFile(filename string) {
+	file, err := os.OpenFile(filename, os.O_RDWR, 0644)
+	if err != nil {
+		StormiFmtPrintln(magenta, "打开文件时出错: "+err.Error())
+		return
+	}
+	defer file.Close()
+
+	err = file.Truncate(0)
+	if err != nil {
+		StormiFmtPrintln(magenta, "清空文件内容时出错: "+err.Error())
+		return
+	}
+	StormiFmtPrintln(yellow, "文件内容已清空: ", filename)
+}
+
+func (FileOpt) CreateFileNX(filename string) {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		file, err := os.Create(filename)
+		if err != nil {
+			StormiFmtPrintln(magenta, "创建文件时出错: "+err.Error())
+			return
+		}
+		defer file.Close()
+		StormiFmtPrintln(magenta, "文件已创建")
+	} else if err != nil {
+		StormiFmtPrintln(magenta, "检查文件时出错: "+err.Error())
+		return
+	}
+}
+
+func (FileOpt) AppendToFile(filename string, s string) {
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		StormiFmtPrintln(magenta, "打开文件时出错"+err.Error())
+		return
+	}
+	defer file.Close()
+	s = s + "\n"
+	if s == "" {
+		return
+	}
+	_, err = io.WriteString(file, s)
+	if err != nil {
+		StormiFmtPrintln(magenta, "写入文件时出错"+err.Error())
+		return
+	}
+}
+
+func (FileOpt) GetMaxConfigFileName(path string) string {
+	dirPath := path
+
+	files, err := os.ReadDir(dirPath)
+	if err != nil {
+		StormiFmtPrintln(magenta, "读取目录时出错"+err.Error())
+		return "1"
+	}
+
+	maxFileName := ""
+	maxIndex := 0
+	for _, file := range files {
+		if !file.IsDir() {
+			fileName := file.Name()
+			ext := filepath.Ext(fileName)
+			name := fileName[:len(fileName)-len(ext)]
+			if name != "" {
+				index, err := strconv.Atoi(name)
+				if err == nil && index > maxIndex {
+					maxIndex = index
+					maxFileName = name
+				}
+			}
+		}
+	}
+	if maxFileName == "" {
+		return "1"
+	}
+
+	n, err := strconv.Atoi(maxFileName)
+	if err != nil {
+		return maxFileName
+	}
+	return strconv.Itoa(n + 1)
+}
+
+func (FileOpt) GetAvailableConfigFileName(path string) string {
+	name := FileProxy.GetMaxConfigFileName(path)
+	n, err := strconv.Atoi(name)
+	if err != nil {
+		return name
+	}
+	return strconv.Itoa(n + 1)
+}

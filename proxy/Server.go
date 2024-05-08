@@ -28,7 +28,7 @@ func (serverProxy) SetInterceptor(u grpc.UnaryServerInterceptor, s grpc.StreamSe
 func (serverProxy) GetStormiRpc() *grpc.Server {
 	var creds credentials.TransportCredentials
 
-	certificationPath := modDir + "/server/rpcserver/interceptor"
+	certificationPath := currentDir + "/server/rpcserver/interceptor" //-----------------------------
 
 	filepath.Walk(certificationPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -40,7 +40,7 @@ func (serverProxy) GetStormiRpc() *grpc.Server {
 		return nil
 	})
 
-	privatePath := modDir + "/server/rpcserver/interceptor/private.key"
+	privatePath := currentDir + "/server/rpcserver/interceptor/private.key" //-----------------------------
 
 	_, err := os.Stat(certificationPath)
 

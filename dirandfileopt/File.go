@@ -9,8 +9,9 @@ import (
 	"strings"
 )
 
-func ReadConfigFile(path string) []string {
-	content, err := os.ReadFile(path)
+func ReadConfigFile() []string {
+	curdir, _ := os.Getwd()
+	content, err := os.ReadFile(curdir + "/app.config")
 	if err != nil {
 		fmt.Println("读取文件失败：", err)
 		return nil
@@ -26,18 +27,19 @@ func ReadConfigFile(path string) []string {
 	return matchesContent
 }
 
-func WriteToConfigFile(nodes []string, path string) error {
+func WriteToConfigFile(nodes []string) error {
+	curdir, _ := os.Getwd()
 	var formattedNodes []string
 	for _, node := range nodes {
 		formattedNodes = append(formattedNodes, fmt.Sprintf("<%s>", node))
 	}
 	content := strings.Join(formattedNodes, "\n")
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	file, err := os.OpenFile(curdir+"/app.config", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return fmt.Errorf("创建文件失败：%v", err)
 	}
 	defer file.Close()
-	_, err = file.WriteString(content)
+	_, err = file.WriteString(content + "\n")
 	if err != nil {
 		return fmt.Errorf("写入文件失败：%v", err)
 	}
@@ -58,7 +60,7 @@ func AppendToYaml(filename string, nodes []string) error {
 	if len(lines) > 0 {
 		lines = lines[:len(lines)-1]
 	}
-	lines = append(lines, "    clusternodes: "+strings.Join(nodes, " "))
+	lines = append(lines, "    nodes: "+strings.Join(nodes, " "))
 	file.Truncate(0)
 	file.Seek(0, 0)
 	writer := bufio.NewWriter(file)

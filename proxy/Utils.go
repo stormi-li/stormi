@@ -104,7 +104,7 @@ type code struct{}
 var Shell code
 
 func appendToConfigFile(s string) {
-	filename := modDir + "/config"
+	filename := currentDir + "/app.config"
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Println("打开文件时出错:", err)

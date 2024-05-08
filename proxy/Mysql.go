@@ -17,6 +17,9 @@ import (
 var db *gorm.DB
 
 func mysqlInit() {
+	if Config.Stormi.Mysql.Host == "" {
+		return
+	}
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=%s",
 		Config.Stormi.Mysql.Username,
 		Config.Stormi.Mysql.Password,

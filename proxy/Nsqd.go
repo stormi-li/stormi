@@ -3,9 +3,14 @@ package proxy
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/nsqio/go-nsq"
+	"github.com/stormi-li/stormi/dirandfileopt"
+	"github.com/stormi-li/stormi/formatprint"
 )
 
 var nsqConnPool = nsqConnectPool{}
@@ -82,36 +87,42 @@ func (nsqdProxy) ListenAndConsume(topic, channel string, hanlder func(message *n
 	}
 }
 
-var dir = sh("stormi-serversetdir.sh")
-
-func (nsqdProxy) CreateNode(tport, hport int, desc string) {
-	res := sh("stormi nsqd-create " + dir + " " + strconv.Itoa(tport) + " " + strconv.Itoa(hport))
-	if res == "-1" {
-		fmt.Println("创建nsqd节点失败，端口已被占用")
-	} else if res == "1" {
-		fmt.Println("nsqd:" + strconv.Itoa(tport) + "节点创建成功")
-		node := Config.Stormi.Ip + ":" + strconv.Itoa(tport)
-		s := "\n<nsqd-nodes@" + node + "@" + desc + ">"
-		appendToConfigFile(s)
-	} else {
-		fmt.Println(res)
+func (nsqdProxy) CreateNode(port int, desc string) {
+	currentdir, _ := os.Getwd()
+	p1 := strconv.Itoa(port)
+	p2 := strconv.Itoa(port + 1)
+	path := currentdir + "/app-nsqd-cluster/" + p1 + "-" + p2
+	if !dirandfileopt.ExistDir(path) {
+		dirandfileopt.CreateDir(path)
+		formatprint.FormatPrint(formatprint.Yellow, "nsqd端口:"+p1+"节点创建成功,占用端口 "+p1+" "+p2+", 你可以启动它了")
+		NsqdProxy.StartNode(port)
 	}
+	if Config.Stormi.Ip == "" {
+		formatprint.FormatPrint(formatprint.Magenta, "未配置ip, 当前节点无法加入配置文件")
+		return
+	}
+	dirandfileopt.AppendToConfigFile(currentdir+"/app.config", "<nsqd-nodes@"+Config.Stormi.Ip+":"+p1+"@"+desc+">\n")
+	formatprint.FormatPrint(formatprint.Yellow, "<nsqd-nodes@"+Config.Stormi.Ip+":"+p1+"@"+desc+">已载入配置文件")
 }
 
 func (nsqdProxy) StartNode(port int) {
-	res := sh("stormi nsqd-start " + dir + " " + strconv.Itoa(port))
-	if res == "-1" {
-		fmt.Println("启动nsqd节点失败，可能是该节点并未被创建")
-	} else if res == "-2" {
-		fmt.Println("启动nsqd节点失败，可能是该节点已经被启动")
-	} else if res == "1" {
-		fmt.Println("nsqd节点启动成功，你可以查看run.log检查nsqd运行情况")
-	} else {
-		fmt.Println(res)
-	}
+	currentdir, _ := os.Getwd()
+	p1 := strconv.Itoa(port)
+	p2 := strconv.Itoa(port + 1)
+	path := currentdir + "/app-nsqd-cluster/" + p1 + "-" + p2
+	go func() {
+		s := runtime.GOOS
+		if s == "windows" {
+			ExecCommand("start nsqd -tcp-address=0.0.0.0:" + p1 + " -http-address=0.0.0.0:" + p2 + " -data-path=" + path)
+		} else {
+			ExecCommand("nohup nsqd -tcp-address=0.0.0.0:" + p1 + " -http-address=0.0.0.0:" + p2 + " -data-path=" + path + ">/dev/nul 2>&1 &")
+		}
+
+	}()
+	time.Sleep(time.Second * 2)
 }
 
-func (nsqdProxy) ShutdownNode(port int) {
+func (nsqdProxy) shutdownNode(port int) {
 	res := sh("stormi nsqd-kill " + strconv.Itoa(port))
 	if res == "-1" {
 		fmt.Println("关闭nsqd节点失败，可能是该节点已经被关闭")

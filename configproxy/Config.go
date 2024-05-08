@@ -1,4 +1,4 @@
-package proxy
+package configproxy
 
 import (
 	"context"
@@ -18,29 +18,8 @@ type StormiConfig struct {
 		Redis struct {
 			Node  string `yaml:"node"`
 			Nodes string `yaml:"nodes"`
-		} `yaml:"redis"`
-		Mysql struct {
-			Username               string `yaml:"username"`
-			Password               string `yaml:"password"`
-			Host                   string `yaml:"host"`
-			Port                   string `yaml:"port"`
-			Dbname                 string `yaml:"dbname"`
-			Timeout                string `yaml:"timeout"`
-			Skipdefaulttransaction bool   `yaml:"skipdefaulttransaction"`
-		} `yaml:"mysql"`
-		Nsq struct {
-			Nodes string `yaml:"nodes"`
-		} `yaml:"nsq"`
-		RpcServer struct {
-			Name   string `yaml:"name"`
-			Weight string `yaml:"weight"`
-			Port   string `yaml:"port"`
-		} `yaml:"rpcserver"`
-		WebServer struct {
-			Name string `yaml:"name"`
-			Port string `yaml:"port"`
-		} `yaml:"webserver"`
-	} `yaml:"stormi"`
+		}
+	}
 }
 
 const (
@@ -59,7 +38,7 @@ var ConfigMap map[string][][]string
 // var modDir = serverSetDir()
 var currentDir string
 
-func Init() {
+func ConfigProxy() {
 	currentDir, _ = os.Getwd()
 	yamlFile, _ := os.ReadFile(currentDir + "/app.yaml")
 	yaml.Unmarshal(yamlFile, &Config)
@@ -74,24 +53,9 @@ func ConfigInit() {
 	json, _ := json.MarshalIndent(Config, " ", " ")
 	fmt.Println(cyan+FormatTime(), "加载配置:\n", string(json), reset)
 	redisInit()
-	mysqlInit()
 	configSync()
 	autoSyncConfig()
 }
-
-// func serverSetDir() string {
-// 	for {
-// 		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
-// 			return dir
-// 		}
-// 		parentDir := filepath.Dir(dir)
-// 		if parentDir == dir {
-// 			break
-// 		}
-// 		dir = parentDir
-// 	}
-// 	return ""
-// }
 
 var prefix = "stormi:config:"
 
@@ -99,85 +63,6 @@ func configSync() {
 	fmt.Println(magenta+FormatTime(), "开始同步配置", reset)
 	yamlFile, _ := os.ReadFile(currentDir + "/app.yaml")
 	yaml.Unmarshal(yamlFile, &Config)
-	uploadRedisSingleNode()
-}
-
-func uploadRedisSingleNode() {
-	ctx := context.Background()
-	rdsClusterClient.SAdd(ctx, prefix+"register", "redis-node")
-	node := Config.Stormi.Redis.Node
-	exist, _ := rdsClusterClient.SIsMember(ctx, prefix+"ignore", node).Result()
-	if !exist && node != "" {
-		rdsClusterClient.HSet(ctx, prefix+"addr:redis-node", node, "The redis node is used in scenarios where data consistency is required")
-	}
-	uploadNsqdNodes()
-}
-
-func uploadNsqdNodes() {
-	ctx := context.Background()
-	rdsClusterClient.SAdd(ctx, prefix+"register", "nsqd-nodes")
-	str := Config.Stormi.Nsq.Nodes
-	nodes := strings.Fields(str)
-	for _, node := range nodes {
-		exist, _ := rdsClusterClient.SIsMember(ctx, prefix+"ignore", node).Result()
-		if !exist {
-			rdsClusterClient.HSet(ctx, prefix+"addr:nsqd-nodes", node, "nsqd cluster node--nsqd集群节点")
-		}
-	}
-	uploadMysql()
-}
-
-func uploadMysql() {
-	ctx := context.Background()
-	rdsClusterClient.SAdd(ctx, prefix+"register", "mysql-nodes")
-	host := Config.Stormi.Mysql.Host
-	port := Config.Stormi.Mysql.Port
-	dbname := Config.Stormi.Mysql.Dbname
-	node := host + ":" + port
-	exist, _ := rdsClusterClient.SIsMember(ctx, prefix+"ignore", node).Result()
-	if !exist && host != "" && port != "" {
-		rdsClusterClient.HSet(ctx, prefix+"addr:mysql-nodes", node, "<database:"+dbname+">")
-	}
-	uploadConfigFile()
-}
-
-func uploadConfigFile() {
-	ctx := context.Background()
-	content := dirandfileopt.ReadConfigFile()
-	for _, line := range content {
-		parts := strings.Split(line, "@")
-		if len(parts) == 3 {
-			exist, _ := rdsClusterClient.SIsMember(ctx, prefix+"ignore:", parts[1]).Result()
-			if !exist {
-				rdsClusterClient.HSet(ctx, prefix+"addr:"+parts[0], parts[1], parts[2])
-			}
-		}
-	}
-	uploadServer()
-}
-
-func uploadServer() {
-	ctx := context.Background()
-	if Config.Stormi.RpcServer.Port != "" {
-		rdsClusterClient.SAdd(ctx, prefix+"register", "rpc-server")
-		node := Config.Stormi.Ip + ":" + Config.Stormi.RpcServer.Port
-		desc := "name:" + Config.Stormi.RpcServer.Name + "--weight:" + Config.Stormi.RpcServer.Weight + ""
-		exist, _ := rdsClusterClient.SIsMember(ctx, prefix+"ignore", node).Result()
-		if !exist {
-			rdsClusterClient.HSet(ctx, prefix+"addr:rpc-server", node, desc)
-		}
-	}
-
-	if Config.Stormi.WebServer.Port != "" {
-		rdsClusterClient.SAdd(ctx, prefix+"register", "web-server")
-		node := Config.Stormi.Ip + ":" + Config.Stormi.WebServer.Port
-		desc := "name:" + Config.Stormi.WebServer.Name + ""
-		exist, _ := rdsClusterClient.SIsMember(ctx, prefix+"ignore", node).Result()
-		if !exist {
-			rdsClusterClient.HSet(ctx, prefix+"addr:web-server", node, desc)
-		}
-	}
-
 	uploadRedisClusterNode()
 }
 
@@ -246,7 +131,6 @@ func downloadConfig() {
 func reInit() {
 	fmt.Println(blue+FormatTime(), "开始连接最新redis集群和nsqd集群节点", reset)
 	redisInit()
-	nsqdInit()
 	fmt.Println(blue+FormatTime(), "已连接最新redis集群和nsqd集群节点", reset)
 	if len(configHandlers) > 0 {
 		fmt.Println(green+FormatTime(), "执行自定义配置处理", reset)

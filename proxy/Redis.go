@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
@@ -204,9 +205,10 @@ func (redisOpt) CreateSingleNode(port int, desc string) {
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "port "+p+"\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "dir "+path+"\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "always-show-logo yes\n")
-		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "logfile "+path+"/run.log\n")
+		// dirandfileopt.AppendToConfigFile(path+"/redis.conf", "logfile "+path+"/run.log\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "loglevel verbose\n")
 		formatprint.FormatPrint(formatprint.Yellow, "redis端口:"+p+"节点创建成功, 你可以启动它了")
+		RedisProxy.StartSingleNode(port)
 	}
 	if Config.Stormi.Ip == "" {
 		formatprint.FormatPrint(formatprint.Magenta, "未配置ip, 当前节点无法加入配置文件")
@@ -214,6 +216,7 @@ func (redisOpt) CreateSingleNode(port int, desc string) {
 	}
 	dirandfileopt.AppendToConfigFile(currentdir+"/app.config", "<redis-node@"+Config.Stormi.Ip+":"+p+"@"+desc+">\n")
 	formatprint.FormatPrint(formatprint.Yellow, "<redis-node@"+Config.Stormi.Ip+":"+p+"@"+desc+">已载入配置文件")
+
 }
 
 func (redisOpt) CreateClusterNode(port int, desc string) {
@@ -233,13 +236,14 @@ func (redisOpt) CreateClusterNode(port int, desc string) {
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "port "+p+"\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "dir "+path+"\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "always-show-logo yes\n")
-		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "logfile "+path+"/run.log\n")
+		// dirandfileopt.AppendToConfigFile(path+"/redis.conf", "logfile "+path+"/run.log\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "loglevel verbose\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "cluster-enabled yes\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "cluster-node-timeout 5000\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "cluster-config-file "+path+"/nodes.conf\n")
 		dirandfileopt.AppendToConfigFile(path+"/redis.conf", "replica-announce-ip "+Config.Stormi.Ip+"\n")
 		formatprint.FormatPrint(formatprint.Yellow, "redis端口:"+p+"集群节点创建成功, 你可以启动它了")
+		RedisProxy.StartClusterNode(port)
 	}
 
 	dirandfileopt.AppendToConfigFile(currentdir+"/app.config", "<redis-nodes@"+Config.Stormi.Ip+":"+p+"@"+desc+">\n")
@@ -275,7 +279,7 @@ func (redisOpt) StartClusterNode(port int) {
 		return
 	}
 	go func() {
-		os.Remove(path + "/run.log")
+		// os.Remove(path + "/run.log")
 		s := runtime.GOOS
 		if s == "windows" {
 			ExecCommand("start redis-server " + path + "/redis.conf")
@@ -284,9 +288,17 @@ func (redisOpt) StartClusterNode(port int) {
 		}
 	}()
 	time.Sleep(2 * time.Second)
+	if ConfigMap != nil {
+		if rand.Intn(2) == 0 {
+			ExecCommand("echo yes | redis-cli --cluster add-node " + Config.Stormi.Ip + ":" + p + " " + ConfigMap["redis-nodes"][0][0])
+		} else {
+			ExecCommand("echo yes | redis-cli --cluster add-node " + Config.Stormi.Ip + ":" + p + " " + ConfigMap["redis-nodes"][0][0] + " --cluster-slave")
+
+		}
+	}
 }
 
-func (redisOpt) ShutdownNode(port int) {
+func (redisOpt) shutdownNode(port int) {
 	res := sh("stormi redis-kill " + strconv.Itoa(port))
 	if res == "1" {
 		fmt.Println("redis:" + strconv.Itoa(port) + "节点关闭成功")
@@ -339,7 +351,7 @@ func (redisOpt) CreateCluster(port1, port2, port3, port4, port5, port6 int) {
 }
 
 func (redisOpt) UploadProto(name string) {
-	filename := modDir + "/server/rpcserver/protos/" + name + ".proto"
+	filename := currentDir + "/server/rpcserver/protos/" + name + ".proto"
 	fileContent, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Println("读取文件失败:", err)
@@ -356,7 +368,7 @@ func (redisOpt) UploadProto(name string) {
 func (redisOpt) DownLoadProto(name string) {
 	content, _ := rdsClusterClient.Get(context.Background(), "stormi:protos:"+name).Result()
 	if content != "" {
-		path := modDir + "/server/serverset/protos/" + name + ".proto"
+		path := currentDir + "/server/serverset/protos/" + name + ".proto"
 		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			fmt.Println("创建文件失败：", err)
@@ -375,7 +387,7 @@ func (redisOpt) DownLoadProto(name string) {
 }
 
 func (redisOpt) UploadQueue(name string) {
-	filename := modDir + "/server/nsqd/queues/" + name + "Queue/" + name + "Queue.go"
+	filename := currentDir + "/server/nsqd/queues/" + name + "Queue/" + name + "Queue.go"
 	fileContent, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Println("读取文件失败:", err)
@@ -392,7 +404,7 @@ func (redisOpt) UploadQueue(name string) {
 func (redisOpt) DownLoadQueue(name string) {
 	content, _ := rdsClusterClient.Get(context.Background(), "stormi:queues:"+name).Result()
 	if content != "" {
-		path := modDir + "/server/nsqd/queues/" + name + "Queue/" + name + "Queue.go"
+		path := currentDir + "/server/nsqd/queues/" + name + "Queue/" + name + "Queue.go"
 		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			fmt.Println("创建文件失败：", err)
