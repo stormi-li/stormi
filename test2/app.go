@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nsqio/go-nsq"
 	"github.com/stormi-li/stormi"
 )
 
@@ -97,27 +96,27 @@ func main() {
 	// }
 	// fmt.Println("hh")
 
-	np := stormi.NewNsqdProxy("192.168.1.103:2221")
-	// np.Register("192.168.1.103:9092")
-	// go func() {
+	// np := stormi.NewNsqdProxy("192.168.1.103:2221")
+	// // np.Register("192.168.1.103:9092")
+	// // go func() {
 
+	// // }()
+	// np.AddConsumeHandler("hhhh", "abc", func(message *nsq.Message) error {
+	// 	fmt.Println(string(message.Body))
+	// 	return nil
+	// })
+	// np.AddConsumeHandler("hhhh", "abc", func(message *nsq.Message) error {
+	// 	fmt.Println(string(message.Body), 2)
+	// 	return nil
+	// })
+	// go func() {
+	// 	time.Sleep(3 * time.Second)
+	// 	np.Stop()
 	// }()
-	np.AddConsumeHandler("hhhh", "abc", func(message *nsq.Message) error {
-		fmt.Println(string(message.Body))
-		return nil
-	})
-	np.AddConsumeHandler("hhhh", "abc", func(message *nsq.Message) error {
-		fmt.Println(string(message.Body), 2)
-		return nil
-	})
-	go func() {
-		time.Sleep(3 * time.Second)
-		np.Stop()
-	}()
-	for {
-		np.Publish("hhhh", []byte(uuid.NewString()))
-		time.Sleep(1000 * time.Millisecond)
-	}
+	// for {
+	// 	np.Publish("hhhh", []byte(uuid.NewString()))
+	// 	time.Sleep(1000 * time.Millisecond)
+	// }
 	// cp := stormi.NewConfigProxy("192.168.1.103:2221")
 	// cp.RemoveRegister("server")
 	// cmap := cp.ConfigSet["server"]
@@ -128,10 +127,11 @@ func main() {
 	// }
 	// np.Register("192.168.1.103:4150")
 
-	t := New()
-	t.Print()
-
-	select {}
+	// t := New()
+	// t.Print()
+	// stormi.NodeBuilder.CreateRedisNode(1112, stormi.NodeType.RedisCluster, "C:\\Users\\lilili\\Desktop\\nsqd\\2", "192.168.1.103")
+	// stormi.NodeBuilder.AddNodeToRedisCluster("192.168.1.103:1112", "192.168.1.103:2221", stormi.NodeType.RedisSlave)
+	stormi.NodeBuilder.CreateRedisCluster(8881, 8882, 8883, 8884, 8885, 8886, "192.168.1.103", "C:\\Users\\lilili\\Desktop\\rediscluster")
 }
 
 type Test struct {

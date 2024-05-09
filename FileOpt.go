@@ -21,37 +21,25 @@ func (FileOpt) WriteToFile(filename string, ss []string) {
 }
 
 func (FileOpt) TruncateFile(filename string) {
-	file, err := os.OpenFile(filename, os.O_RDWR, 0644)
-	if err != nil {
-		StormiFmtPrintln(magenta, "打开文件时出错: "+err.Error())
-		return
-	}
+	FileProxy.CreateFileNX(filename)
+	file, _ := os.OpenFile(filename, os.O_RDWR, 0644)
+
 	defer file.Close()
 
-	err = file.Truncate(0)
-	if err != nil {
-		StormiFmtPrintln(magenta, "清空文件内容时出错: "+err.Error())
-		return
-	}
-	StormiFmtPrintln(yellow, "文件内容已清空: ", filename)
+	file.Truncate(0)
 }
 
 func (FileOpt) CreateFileNX(filename string) {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		file, err := os.Create(filename)
 		if err != nil {
-			StormiFmtPrintln(magenta, "创建文件时出错: "+err.Error())
 			return
 		}
 		defer file.Close()
-		StormiFmtPrintln(magenta, "文件已创建")
-	} else if err != nil {
-		StormiFmtPrintln(magenta, "检查文件时出错: "+err.Error())
-		return
 	}
 }
 
-func (FileOpt) AppendToFile(filename string, s string) {
+func (f FileOpt) AppendToFile(filename string, s string) {
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		StormiFmtPrintln(magenta, "打开文件时出错"+err.Error())
