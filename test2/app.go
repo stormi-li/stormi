@@ -106,6 +106,10 @@ func main() {
 		fmt.Println(string(message.Body))
 		return nil
 	})
+	np.AddConsumeHandler("hhhh", "abc", func(message *nsq.Message) error {
+		fmt.Println(string(message.Body), 2)
+		return nil
+	})
 	for {
 		np.Publish("hhhh", []byte(uuid.NewString()))
 		time.Sleep(1000 * time.Millisecond)
