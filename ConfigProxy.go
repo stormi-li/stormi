@@ -70,6 +70,17 @@ func NewConfigProxy(addr any) *ConfigProxy {
 	return cp
 }
 
+func NewConfigProxyByRedisProxy(rp *RedisProxy) *ConfigProxy {
+	cp := &ConfigProxy{}
+	cp.rp = rp
+	cp.configHandlers = []ConfigHandler{}
+	cp.ConfigSet = map[string]map[string]*Config{}
+	cp.rdsAddr = cp.rp.addrs[0]
+	cp.count = 0
+	cp.autoSyncConfig()
+	return cp
+}
+
 func (cp ConfigProxy) NewConfig() Config {
 	c := Config{}
 	c.UUID = uuid.NewString()
@@ -258,8 +269,8 @@ func (cp ConfigProxy) autoSyncConfig() {
 	cp.PrintConfigSet()
 	go func() {
 		StormiFmtPrintln(yellow, cp.rdsAddr, "配置同步协程启动")
-		cp.rp.CycleWait(configchannel, 1*time.Hour, func(msg string) {
-			if msg == "" {
+		cp.rp.CycleWait(configchannel, 1*time.Hour, false, func(msg *string) error {
+			if msg == nil {
 				StormiFmtPrintln(blue, cp.rdsAddr, "定时同步配置任务触发")
 				cp.SyncConfig()
 			} else {
@@ -267,9 +278,10 @@ func (cp ConfigProxy) autoSyncConfig() {
 				if notifyhandler == nil {
 					cp.SyncConfig()
 				} else {
-					notifyhandler(cp, msg)
+					notifyhandler(cp, *msg)
 				}
 			}
+			return nil
 		})
 	}()
 }

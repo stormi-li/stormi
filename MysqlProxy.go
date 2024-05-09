@@ -2,6 +2,9 @@ package stormi
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -87,7 +90,7 @@ func (mp *MysqlProxy) Config() *Config {
 	return mp.c
 }
 
-func (mp *MysqlProxy) ConfigProxyD() *ConfigProxy {
+func (mp *MysqlProxy) ConfigProxy() *ConfigProxy {
 	return mp.cp
 }
 
@@ -95,9 +98,88 @@ func (mp *MysqlProxy) RedisProxy() *RedisProxy {
 	return mp.cp.rp
 }
 
-func (mp *MysqlProxy) NewDTM(dtxid string) DTM {
-	dtm := DTM{}
-	dtm.db = mp.db.Begin()
-	dtm.uuid = dtxid
-	return dtm
+type DTx struct {
+	db         *gorm.DB
+	rollbacked bool
+	uuid       string
+	index      int
+	rp         *RedisProxy
+}
+
+func (mp MysqlProxy) NewDTx(dtxid string) *DTx {
+	dtx := DTx{}
+	dtx.uuid = dtxid
+	parts := strings.Split(dtxid, "@")
+	if len(parts) != 2 {
+		StormiFmtPrintln(magenta, "无效事务id:", dtxid)
+		return nil
+	}
+	dtx.uuid = parts[0]
+	index, err := strconv.Atoi(parts[1])
+	if err != nil {
+		StormiFmtPrintln(magenta, "无效事务id:", dtxid)
+		return nil
+	}
+	dtx.index = index
+	dtx.db = mp.db.Begin()
+	dtx.rp = mp.cp.rp
+	return &dtx
+}
+
+func (dtx *DTx) DB() *gorm.DB {
+	return dtx.db
+}
+
+func (dtx *DTx) Rollback() {
+	if dtx.rollbacked {
+		return
+	} else {
+		dtx.rollbacked = true
+		dtx.dtxhandle()
+	}
+}
+func (dtx *DTx) Commit() {
+	if dtx.rollbacked {
+		return
+	} else {
+		dtx.dtxhandle()
+	}
+}
+
+func (dtx *DTx) dtxhandle() {
+	pubsub := dtx.rp.GetPubSub(dtx.uuid)
+	go func() {
+		index := strconv.Itoa(dtx.index)
+		hiindex := hi + "@" + index
+		status := ""
+		if dtx.rollbacked {
+			status = rollbackwaiting + "@" + index
+		} else {
+			status = commitwaiting + "@" + index
+		}
+		finishm := finished + "@" + index
+		dtx.rp.Notify(dtx.uuid, hi)
+		resp := dtx.rp.Subscribe(pubsub, 10*time.Second, func(msg string) int {
+			if msg == rollback {
+				dtx.rp.Notify(dtx.uuid, finishm+"@"+rollback)
+				return 2
+			}
+			if msg == commit {
+				dtx.rp.Notify(dtx.uuid, finishm+"@"+commit)
+				return 1
+			}
+			if msg == hi {
+				dtx.rp.Notify(dtx.uuid, hiindex)
+			}
+			if msg == report {
+				dtx.rp.Notify(dtx.uuid, status)
+			}
+			return 0
+		})
+		if resp == 1 {
+			dtx.db.Commit()
+		} else {
+			dtx.db.Rollback()
+		}
+	}()
 }

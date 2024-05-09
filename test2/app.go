@@ -81,10 +81,10 @@ func main() {
 
 	tp := stormi.NewTransactionProxy("192.168.1.103:2221")
 	ids := tp.NewDTxIds(3)
-	go func1(ids[0])
-	go func2(ids[1])
-	go func3(ids[2])
-	tp.DCommit(ids, func(statement [][2]int) {
+	func1(ids[0])
+	func2(ids[1])
+	func3(ids[2])
+	tp.DCommit(ids, func(statement [][2]string) {
 		fmt.Println("事务失败")
 		fmt.Println(statement)
 	})
@@ -95,7 +95,7 @@ func func1(id string) {
 	mp := stormi.NewMysqlProxy("192.168.1.103:2221")
 	mp.ConnectByNodeId(1234)
 	dtx := mp.NewDTx(id)
-	dtx.DB().Create(&User{Name: uuid.NewString(), Age: 10})
+	dtx.DB().Create(&User{Name: uuid.NewString() + "1", Age: 1})
 	dtx.Commit()
 }
 
@@ -103,7 +103,7 @@ func func2(id string) {
 	mp := stormi.NewMysqlProxy("192.168.1.103:2221")
 	mp.ConnectByNodeId(1234)
 	dtx := mp.NewDTx(id)
-	dtx.DB().Create(&User{Name: uuid.NewString(), Age: 10})
+	dtx.DB().Create(&User{Name: uuid.NewString() + "2", Age: 2})
 	dtx.Commit()
 }
 
@@ -111,8 +111,8 @@ func func3(id string) {
 	mp := stormi.NewMysqlProxy("192.168.1.103:2221")
 	mp.ConnectByNodeId(1234)
 	dtx := mp.NewDTx(id)
-	dtx.DB().Create(&User{Name: uuid.NewString(), Age: 10})
-	dtx.Commit()
+	dtx.DB().Create(&User{Name: uuid.NewString() + "3", Age: 3})
+	dtx.Rollback()
 }
 
 type User struct {

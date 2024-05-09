@@ -198,7 +198,7 @@ func (rp *RedisProxy) Wait(channel string, timeout time.Duration) string {
 	}
 }
 
-func (rp *RedisProxy) CycleWait(channel string, timeout time.Duration, handler func(msg string)) {
+func (rp *RedisProxy) CycleWait(channel string, timeout time.Duration, reset bool, handler func(msg *string) error) {
 	t := timeout
 	var pubsub *redis.PubSub
 	if rp.isCluster {
@@ -213,9 +213,14 @@ func (rp *RedisProxy) CycleWait(channel string, timeout time.Duration, handler f
 		select {
 		case <-timer.C:
 			timer = time.NewTicker(t)
-			handler("")
+			handler(nil)
 		case msg := <-c:
-			handler(msg.Payload)
+			if handler(&msg.Payload) != nil {
+				return
+			}
+			if reset {
+				timer = time.NewTicker(t)
+			}
 		}
 	}
 }
@@ -274,7 +279,7 @@ func (rp *RedisProxy) Publish(channel string, msg chan string, shutdown chan str
 }
 
 func (rp *RedisProxy) RegisterSingle(nodeId int, addr string) {
-	cp := NewConfigProxy(rp.addrs)
+	cp := NewConfigProxyByRedisProxy(rp)
 	c := cp.NewConfig()
 	c.Name = "redis-single"
 	c.Addr = addr
@@ -283,7 +288,7 @@ func (rp *RedisProxy) RegisterSingle(nodeId int, addr string) {
 }
 
 func (rp *RedisProxy) RegisterCluster(addr string) {
-	cp := NewConfigProxy(rp.addrs)
+	cp := NewConfigProxyByRedisProxy(rp)
 	c := cp.NewConfig()
 	c.Name = "redis-cluster"
 	c.Addr = addr
