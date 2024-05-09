@@ -38,7 +38,7 @@ func (nodeBuilder) CreateNsqdNode(tcpPort int, httpPort int, path string) {
 		if s == "windows" {
 			ExecCommand("start nsqd -tcp-address=0.0.0.0:" + p1 + " -http-address=0.0.0.0:" + p2 + " -data-path=" + path)
 		} else {
-			ExecCommand("nohup nsqd -tcp-address=0.0.0.0:" + p1 + " -http-address=0.0.0.0:" + p2 + " -data-path=" + path + ">/dev/nul 2>&1 &")
+			ExecCommand("nohup nsqd -tcp-address=0.0.0.0:" + p1 + " -http-address=0.0.0.0:" + p2 + " -data-path=" + path + " >> run.log >/dev/nul 2>&1 &")
 		}
 	}()
 	time.Sleep(10 * time.Millisecond)
@@ -89,7 +89,7 @@ func (nodeBuilder) createRedisNode(port int, path string) {
 		if s == "windows" {
 			ExecCommand("start redis-server " + path + "/redis.conf")
 		} else {
-			ExecCommand("nohup redis-server " + path + "/redis.conf >/dev/nul 2>&1 &")
+			ExecCommand("nohup redis-server " + path + "/redis.conf >> run.log >/dev/nul 2>&1 &")
 		}
 	}()
 	time.Sleep(10 * time.Millisecond)
@@ -115,7 +115,7 @@ func (nodeBuilder) createRedisCluster(port int, ip string, path string) {
 		if s == "windows" {
 			ExecCommand("start redis-server " + path + "/redis.conf")
 		} else {
-			ExecCommand("nohup redis-server " + path + "/redis.conf >/dev/nul 2>&1 &")
+			ExecCommand("nohup redis-server " + path + "/redis.conf >> run.log >/dev/nul 2>&1 &")
 		}
 	}()
 	time.Sleep(10 * time.Millisecond)
