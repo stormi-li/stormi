@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/stormi-li/stormi"
 )
 
@@ -78,23 +79,40 @@ func main() {
 	// }()
 	// select {}
 
+	tp := stormi.NewTransactionProxy("192.168.1.103:2221")
+	ids := tp.NewDTxIds(3)
+	go func1(ids[0])
+	go func2(ids[1])
+	go func3(ids[2])
+	tp.DCommit(ids, func(statement [][2]int) {
+		fmt.Println("事务失败")
+		fmt.Println(statement)
+	})
+	select {}
+}
+
+func func1(id string) {
 	mp := stormi.NewMysqlProxy("192.168.1.103:2221")
-	// mp.Register(1234, "192.168.37.132:3306", "root", "123456", "stormi")
 	mp.ConnectByNodeId(1234)
-	// err := mp.DB().AutoMigrate(&User{})
-	// if err != nil {
-	// 	fmt.Println("创建表时出错:", err)
-	// 	return
-	// }
+	dtx := mp.NewDTx(id)
+	dtx.DB().Create(&User{Name: uuid.NewString(), Age: 10})
+	dtx.Commit()
+}
 
-	// fmt.Println("表创建成功")
-	// db := mp.DB()
-	// tx := db.Begin()
+func func2(id string) {
+	mp := stormi.NewMysqlProxy("192.168.1.103:2221")
+	mp.ConnectByNodeId(1234)
+	dtx := mp.NewDTx(id)
+	dtx.DB().Create(&User{Name: uuid.NewString(), Age: 10})
+	dtx.Commit()
+}
 
-	// 在事务中创建一个产品
-
-	// 检查事务提交状态
-
+func func3(id string) {
+	mp := stormi.NewMysqlProxy("192.168.1.103:2221")
+	mp.ConnectByNodeId(1234)
+	dtx := mp.NewDTx(id)
+	dtx.DB().Create(&User{Name: uuid.NewString(), Age: 10})
+	dtx.Commit()
 }
 
 type User struct {
