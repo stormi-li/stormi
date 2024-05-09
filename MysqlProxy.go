@@ -101,6 +101,7 @@ func (mp *MysqlProxy) RedisProxy() *RedisProxy {
 type DTx struct {
 	db         *gorm.DB
 	rollbacked bool
+	committed  bool
 	uuid       string
 	index      int
 	rp         *RedisProxy
@@ -131,7 +132,7 @@ func (dtx *DTx) DB() *gorm.DB {
 }
 
 func (dtx *DTx) Rollback() {
-	if dtx.rollbacked {
+	if dtx.rollbacked || dtx.committed {
 		return
 	} else {
 		dtx.rollbacked = true
@@ -139,9 +140,10 @@ func (dtx *DTx) Rollback() {
 	}
 }
 func (dtx *DTx) Commit() {
-	if dtx.rollbacked {
+	if dtx.rollbacked || dtx.committed {
 		return
 	} else {
+		dtx.committed = true
 		dtx.dtxhandle()
 	}
 }

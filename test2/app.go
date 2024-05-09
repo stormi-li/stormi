@@ -113,6 +113,8 @@ func func3(id string) {
 	dtx := mp.NewDTx(id)
 	dtx.DB().Create(&User{Name: uuid.NewString() + "3", Age: 3})
 	dtx.Rollback()
+	dtx.Commit()
+
 }
 
 type User struct {
