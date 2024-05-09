@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/nsqio/go-nsq"
 	"github.com/stormi-li/stormi"
 )
 
@@ -79,16 +81,71 @@ func main() {
 	// }()
 	// select {}
 
-	tp := stormi.NewTransactionProxy("192.168.1.103:2221")
-	ids := tp.NewDTxIds(3)
-	func1(ids[0])
-	func2(ids[1])
-	func3(ids[2])
-	tp.DCommit(ids, func(statement [][2]string) {
-		fmt.Println("事务失败")
-		fmt.Println(statement)
+	// tp := stormi.NewTransactionProxy("192.168.1.103:2221")
+	// ids := tp.NewDTxIds(3)
+	// func1(ids[0])
+	// func2(ids[1])
+	// func3(ids[2])
+	// tp.DCommit(ids, func(statement [][2]string) {
+	// 	fmt.Println("事务失败")
+	// 	fmt.Println(statement)
+	// })
+	// select {}
+	// var b = []string{}
+	// for _, a := range b {
+	// 	fmt.Println(a)
+	// }
+	// fmt.Println("hh")
+
+	np := stormi.NewNsqdProxy("192.168.1.103:2221")
+	// np.Register("192.168.1.103:9092")
+	// go func() {
+
+	// }()
+	np.AddConsumeHandler("hhhh", "abc", func(message *nsq.Message) error {
+		fmt.Println(string(message.Body))
+		return nil
 	})
+	for {
+		np.Publish("hhhh", []byte(uuid.NewString()))
+		time.Sleep(1000 * time.Millisecond)
+	}
+	// cp := stormi.NewConfigProxy("192.168.1.103:2221")
+	// cp.RemoveRegister("server")
+	// cmap := cp.ConfigSet["server"]
+	// for _, c := range cmap {
+
+	// 	cp.Remove(*c)
+
+	// }
+	// np.Register("192.168.1.103:4150")
+
+	t := New()
+	t.Print()
+
 	select {}
+}
+
+type Test struct {
+	m string
+}
+
+func New() *Test {
+	t1 := Test{}
+	t1.change()
+	return &t1
+}
+func (t *Test) change() {
+	go func() {
+		t.m = "hh"
+	}()
+}
+
+func (t *Test) Print() {
+	for {
+		fmt.Println(t.m)
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func func1(id string) {

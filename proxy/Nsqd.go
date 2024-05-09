@@ -117,7 +117,7 @@ func (nsqdProxy) StartNode(port int) {
 		} else {
 			ExecCommand("nohup nsqd -tcp-address=0.0.0.0:" + p1 + " -http-address=0.0.0.0:" + p2 + " -data-path=" + path + ">/dev/nul 2>&1 &")
 		}
-
+		//nsqd -tcp-address=0.0.0.0:5555 -http-address=0.0.0.0:5557
 	}()
 	time.Sleep(time.Second * 2)
 }

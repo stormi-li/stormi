@@ -43,11 +43,11 @@ func init() {
 
 }
 
-func NewTransactionProxy(addr any) TransactionProxy {
+func NewTransactionProxy(addr any) *TransactionProxy {
 	rp := NewRedisProxy(addr)
 	tp := TransactionProxy{}
 	tp.rp = rp
-	return tp
+	return &tp
 }
 
 func (tp TransactionProxy) NewDTxIds(num int) []string {
@@ -62,18 +62,18 @@ func (tp TransactionProxy) NewDTxIds(num int) []string {
 func (tp TransactionProxy) DCommit(dtxids []string, handler func(statement [][2]string)) {
 	num := len(dtxids)
 	if num == 0 {
-		StormiFmtPrintln(magenta, "无效事务ids:", dtxids)
+		StormiFmtPrintln(magenta, tp.rp.addrs[0], "无效事务ids:", dtxids)
 		return
 	}
 	uuid := ""
 	for _, id := range dtxids {
 		parts := strings.Split(id, "@")
 		if len(parts) != 2 {
-			StormiFmtPrintln(magenta, "无效事务id:", id)
+			StormiFmtPrintln(magenta, tp.rp.addrs[0], "无效事务id:", id)
 			return
 		} else {
 			if uuid != "" && parts[0] != uuid {
-				StormiFmtPrintln(magenta, "事务id不一致:", id, uuid)
+				StormiFmtPrintln(magenta, tp.rp.addrs[0], "事务id不一致:", id, uuid)
 				return
 			}
 		}

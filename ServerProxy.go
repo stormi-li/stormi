@@ -15,10 +15,15 @@ type ServerProxy struct {
 }
 
 func NewServerProxy(addr any) *ServerProxy {
+	cp, ok := addr.(*ConfigProxy)
 	sp := ServerProxy{}
-	sp.cp = NewConfigProxy(addr)
+	if ok {
+		sp.cp = cp
+	} else {
+		sp.cp = NewConfigProxy(addr)
+	}
 	sp.rdsAddr = sp.cp.rdsAddr
-	sp.sdreg = make(chan struct{})
+	sp.sdreg = make(chan struct{}, 1)
 	return &sp
 }
 
@@ -48,9 +53,9 @@ func (sp *ServerProxy) Register(name string, addr string, weight int, t time.Dur
 		rp.Publish(name+addr, msgc, sdpub)
 	}()
 	go func() {
-		cycleTask(t, func(msg string) {
+		cycleTask(t, func() {
 			msgc <- t.String()
-			sp.cp.RefreshConfigs(sp.configs)
+			sp.cp.Refreshs(sp.configs)
 		}, sdcyc)
 	}()
 	go func() {
@@ -65,25 +70,25 @@ func (sp *ServerProxy) Register(name string, addr string, weight int, t time.Dur
 		<-sp.sdreg
 		sdpub <- struct{}{}
 		sdcyc <- struct{}{}
-		sp.cp.RemoveConfigs(sp.configs)
+		sp.cp.Removes(sp.configs)
 		StormiFmtPrintln(green, sp.rdsAddr, "注册服务关闭, 服务名:", name, "地址:", addr, "权重:", weight, "心跳间隔:", t)
 	}()
 }
 
-func cycleTaskDelay(t time.Duration, handler func(msg string), sd chan struct{}) {
+func cycleTaskDelay(t time.Duration, handler func(), sd chan struct{}) {
 	timer := time.NewTicker(t)
 	for {
 		select {
 		case <-timer.C:
 			timer = time.NewTicker(t)
-			handler("")
+			handler()
 		case <-sd:
 			return
 		}
 	}
 }
-func cycleTask(t time.Duration, handler func(msg string), sd chan struct{}) {
-	handler("")
+func cycleTask(t time.Duration, handler func(), sd chan struct{}) {
+	handler()
 	cycleTaskDelay(t, handler, sd)
 }
 
@@ -95,7 +100,7 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 	c := sp.discover(name)
 	if c == nil {
 		StormiFmtPrintln(magenta, sp.rdsAddr, "当前配置集未发现", name, "服务, 尝试从redis配置集重新拉取配置")
-		sp.cp.PullAllConfig()
+		sp.cp.PullAll()
 		c = sp.discover(name)
 		if c == nil {
 			StormiFmtPrintln(magenta, sp.rdsAddr, "redis配置集未发现", name, "服务, 发现服务关闭")
@@ -115,7 +120,7 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 	})
 	if res != 1 {
 		sp.cp.ConfigSet[name][c.GetKey()].Ignore = true
-		sp.cp.UpdateConfig(*sp.cp.ConfigSet[name][c.GetKey()])
+		sp.cp.Update(*sp.cp.ConfigSet[name][c.GetKey()])
 		sp.Discover(name, t, handler)
 		return
 	}

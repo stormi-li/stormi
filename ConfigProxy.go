@@ -65,8 +65,7 @@ func NewConfigProxy(addr any) *ConfigProxy {
 	cp.configHandlers = []ConfigHandler{}
 	cp.ConfigSet = map[string]map[string]*Config{}
 	cp.rdsAddr = cp.rp.addrs[0]
-	cp.count = 0
-	cp.autoSyncConfig()
+	cp.autoSync()
 	return cp
 }
 
@@ -76,8 +75,7 @@ func NewConfigProxyByRedisProxy(rp *RedisProxy) *ConfigProxy {
 	cp.configHandlers = []ConfigHandler{}
 	cp.ConfigSet = map[string]map[string]*Config{}
 	cp.rdsAddr = cp.rp.addrs[0]
-	cp.count = 0
-	cp.autoSyncConfig()
+	cp.autoSync()
 	return cp
 }
 
@@ -146,20 +144,20 @@ func (cp ConfigProxy) Register(c Config) {
 		StormiFmtPrintln(magenta, cp.rdsAddr, "配置已存在:", c.ToString())
 		return
 	}
-	cp.uploadConfig(c, "注册")
+	cp.upload(c, "注册")
 }
 
-func (cp ConfigProxy) UpdateConfig(c Config) {
-	cp.uploadConfig(c, "修改")
+func (cp ConfigProxy) Update(c Config) {
+	cp.upload(c, "修改")
 }
 
-func (cp ConfigProxy) RefreshConfigs(cs []Config) {
+func (cp ConfigProxy) Refreshs(cs []Config) {
 	for _, c := range cs {
-		cp.uploadConfig(c, "")
+		cp.upload(c, "")
 	}
 }
 
-func (cp ConfigProxy) uploadConfig(c Config, s string) {
+func (cp ConfigProxy) upload(c Config, s string) {
 	if c.Name == "" || c.Addr == "" || c.UUID == "" {
 		StormiFmtPrintln(magenta, cp.rdsAddr, "配置信息不完全", c.ToConfigString())
 	}
@@ -179,7 +177,7 @@ func (cp ConfigProxy) uploadConfig(c Config, s string) {
 	}
 }
 
-func (cp ConfigProxy) PullConfig(name string) map[string]Config {
+func (cp ConfigProxy) Pull(name string) map[string]Config {
 	cmap := map[string]Config{}
 	var hmap map[string]string
 	if cp.rp.isCluster {
@@ -199,7 +197,7 @@ func (cp ConfigProxy) PullConfig(name string) map[string]Config {
 	return nil
 }
 
-func (cp ConfigProxy) PullAllConfig() map[string]map[string]Config {
+func (cp ConfigProxy) PullAll() map[string]map[string]Config {
 	var names = []string{}
 	var cmapmap = map[string]map[string]Config{}
 	if cp.rp.isCluster {
@@ -212,7 +210,7 @@ func (cp ConfigProxy) PullAllConfig() map[string]map[string]Config {
 		return nil
 	}
 	for _, name := range names {
-		cmap := cp.PullConfig(name)
+		cmap := cp.Pull(name)
 		cmapmap[name] = cmap
 	}
 	return cmapmap
@@ -233,13 +231,14 @@ func (cp ConfigProxy) IsExist(c Config) bool {
 
 var configchannel = "stormi-sync-config"
 
-func (cp *ConfigProxy) SyncConfig() {
+func (cp *ConfigProxy) Sync() {
 	if !cp.rp.isConnected {
 		StormiFmtPrintln(red, cp.rdsAddr, "当前未连接到任何redis节点, 无法进行配置同步")
 		return
 	}
-	StormiFmtPrintln(cyan, cp.rdsAddr, "开始第", cp.count+1, "次同步配置")
-	cmapmap := cp.PullAllConfig()
+	cp.count = cp.count + 1
+	StormiFmtPrintln(cyan, cp.rdsAddr, "开始第", cp.count, "次同步配置")
+	cmapmap := cp.PullAll()
 	for name, cmap := range cmapmap {
 		for key, c := range cmap {
 			if cp.ConfigSet[name] == nil {
@@ -255,30 +254,31 @@ func (cp *ConfigProxy) SyncConfig() {
 			StormiFmtPrintln(green, cp.rdsAddr, "对配置", chandler.Name, "的自定义配置处理结束")
 		}
 	}
-	StormiFmtPrintln(cyan, cp.rdsAddr, "第", cp.count+1, "次配置同步结束")
-	cp.count++
+	StormiFmtPrintln(cyan, cp.rdsAddr, "第", cp.count, "次配置同步结束")
 }
 
-func (cp ConfigProxy) autoSyncConfig() {
+func (cp *ConfigProxy) autoSync() {
 	if !cp.rp.isConnected {
 		StormiFmtPrintln(red, cp.rdsAddr, "当前未连接到任何redis节点, 自动同步配置失败")
 		return
 	}
 	StormiFmtPrintln(yellow, cp.rdsAddr, "初始配置同步开始")
-	cp.SyncConfig()
+	cp.Sync()
 	cp.PrintConfigSet()
+	StormiFmtPrintln(yellow, cp.rdsAddr, "配置同步协程启动")
 	go func() {
-		StormiFmtPrintln(yellow, cp.rdsAddr, "配置同步协程启动")
 		cp.rp.CycleWait(configchannel, 1*time.Hour, false, func(msg *string) error {
 			if msg == nil {
 				StormiFmtPrintln(blue, cp.rdsAddr, "定时同步配置任务触发")
-				cp.SyncConfig()
+				cp.Sync()
 			} else {
-				StormiFmtPrintln(blue, cp.rdsAddr, "接收到配置同步通知, 通知内容为:", msg)
-				if notifyhandler == nil {
-					cp.SyncConfig()
+				StormiFmtPrintln(blue, cp.rdsAddr, "接收到配置同步通知, 通知内容为:", *msg)
+				if notifyhandlers == nil {
+					cp.Sync()
 				} else {
-					notifyhandler(cp, *msg)
+					for _, notifyhandler := range notifyhandlers {
+						notifyhandler(*cp, *msg)
+					}
 				}
 			}
 			return nil
@@ -286,10 +286,10 @@ func (cp ConfigProxy) autoSyncConfig() {
 	}()
 }
 
-var notifyhandler func(configProxy ConfigProxy, msg string)
+var notifyhandlers []func(configProxy ConfigProxy, msg string)
 
 func (ConfigProxy) SetConfigSyncNotficationHandler(handler func(configProxy ConfigProxy, msg string)) {
-	notifyhandler = handler
+	notifyhandlers = append(notifyhandlers, handler)
 }
 
 func (cp ConfigProxy) NotifySync(desc string) {
@@ -303,7 +303,7 @@ func (cp *ConfigProxy) AddConfigHandler(name string, handler func(cmap map[strin
 	cp.configHandlers = append(cp.configHandlers, ch)
 }
 
-func (cp *ConfigProxy) RemoveConfig(c Config) {
+func (cp *ConfigProxy) Remove(c Config) {
 	var ok int64
 	if cp.rp.isCluster {
 		ok, _ = cp.rp.rdsClusterClient.HDel(context.Background(), configAddrPrefix+c.Name, c.Addr+"@"+c.UUID).Result()
@@ -313,12 +313,26 @@ func (cp *ConfigProxy) RemoveConfig(c Config) {
 	if ok != 0 {
 		StormiFmtPrintln(blue, cp.rdsAddr, "删除配置成功:", c.ToJsonStr())
 	} else {
-		StormiFmtPrintln(blue, cp.rdsAddr, "删除配置失败, 可能是该配置不存在于控制集:", c.ToJsonStr())
+		StormiFmtPrintln(blue, cp.rdsAddr, "删除配置失败, 可能是该配置不存在于配置集:", c.ToJsonStr())
 	}
 }
 
-func (cp *ConfigProxy) RemoveConfigs(cs []Config) {
+func (cp *ConfigProxy) RemoveRegister(name string) {
+	var ok int64
+	if cp.rp.isCluster {
+		ok, _ = cp.rp.rdsClusterClient.SRem(context.Background(), configRegisterPrefix, name).Result()
+	} else {
+		ok, _ = cp.rp.rdsClient.HDel(context.Background(), configRegisterPrefix, name).Result()
+	}
+	if ok != 0 {
+		StormiFmtPrintln(blue, cp.rdsAddr, "删除配置名成功:", name)
+	} else {
+		StormiFmtPrintln(blue, cp.rdsAddr, "删除配置名失败, 可能是该配置名不存在于注册集:", name)
+	}
+}
+
+func (cp *ConfigProxy) Removes(cs []Config) {
 	for _, c := range cs {
-		cp.RemoveConfig(c)
+		cp.Remove(c)
 	}
 }

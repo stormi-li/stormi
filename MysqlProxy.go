@@ -17,10 +17,15 @@ type MysqlProxy struct {
 	db *gorm.DB
 }
 
-func NewMysqlProxy(addr any) MysqlProxy {
+func NewMysqlProxy(addr any) *MysqlProxy {
+	cp, ok := addr.(*ConfigProxy)
 	mp := MysqlProxy{}
-	mp.cp = NewConfigProxy(addr)
-	return mp
+	if ok {
+		mp.cp = cp
+	} else {
+		mp.cp = NewConfigProxy(addr)
+	}
+	return &mp
 }
 
 func (mp *MysqlProxy) Register(nodeId int, addr string, username string, password string, dbname string) {
@@ -112,13 +117,13 @@ func (mp MysqlProxy) NewDTx(dtxid string) *DTx {
 	dtx.uuid = dtxid
 	parts := strings.Split(dtxid, "@")
 	if len(parts) != 2 {
-		StormiFmtPrintln(magenta, "无效事务id:", dtxid)
+		StormiFmtPrintln(magenta, mp.cp.rdsAddr, "无效事务id:", dtxid)
 		return nil
 	}
 	dtx.uuid = parts[0]
 	index, err := strconv.Atoi(parts[1])
 	if err != nil {
-		StormiFmtPrintln(magenta, "无效事务id:", dtxid)
+		StormiFmtPrintln(magenta, mp.cp.rdsAddr, "无效事务id:", dtxid)
 		return nil
 	}
 	dtx.index = index
