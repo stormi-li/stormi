@@ -110,6 +110,10 @@ func main() {
 		fmt.Println(string(message.Body), 2)
 		return nil
 	})
+	go func() {
+		time.Sleep(3 * time.Second)
+		np.Stop()
+	}()
 	for {
 		np.Publish("hhhh", []byte(uuid.NewString()))
 		time.Sleep(1000 * time.Millisecond)

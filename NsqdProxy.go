@@ -15,7 +15,9 @@ type NsqdProxy struct {
 	producers      []*nsq.Producer
 	proReconnect   chan struct{}
 	consReconnect  chan struct{}
-	sd             chan struct{}
+	sdautocon      chan struct{}
+	sdautocons     chan struct{}
+	stoped         bool
 }
 
 func NewNsqdProxy(addr any) *NsqdProxy {
@@ -28,7 +30,8 @@ func NewNsqdProxy(addr any) *NsqdProxy {
 	}
 	np.proReconnect = make(chan struct{}, 1)
 	np.consReconnect = make(chan struct{}, 1)
-	np.sd = make(chan struct{}, 1)
+	np.sdautocon = make(chan struct{}, 1)
+	np.sdautocons = make(chan struct{}, 1)
 	np.refreshAddrs()
 	np.cp.SetConfigSyncNotficationHandler(func(configProxy ConfigProxy, msg string) {
 		parts := strings.Split(msg, "@")
@@ -55,11 +58,6 @@ func (np *NsqdProxy) Register(addr string) {
 
 func (np *NsqdProxy) refreshAddrs() {
 	np.addrs = []string{}
-	np.availableAddrs = []string{}
-	for _, p := range np.producers {
-		p.Stop()
-	}
-	np.producers = []*nsq.Producer{}
 	nmap := np.cp.ConfigSet["nsqd"]
 	if len(nmap) == 0 {
 		StormiFmtPrintln(magenta, np.cp.rdsAddr, "当前配置集未发现nsqd节点, 尝试从redis重新拉取配置")
@@ -84,8 +82,7 @@ func (np *NsqdProxy) refreshAddrs() {
 		}
 		return
 	}
-	StormiFmtPrintln(yellow, np.cp.rdsAddr, "当前配置集可供连接的nsqd节点:", np.addrs)
-
+	StormiFmtPrintln(yellow, np.cp.rdsAddr, "更新nsqd节点结束, 当前配置集可供连接的nsqd节点:", np.addrs)
 }
 
 func (np *NsqdProxy) autoConnect() {
@@ -119,7 +116,13 @@ func (np *NsqdProxy) autoConnect() {
 					}
 				}
 			}
-		}, np.proReconnect, np.sd)
+		}, np.proReconnect, np.sdautocon)
+		if len(np.producers) != 0 {
+			for _, p := range np.producers {
+				p.Stop()
+			}
+		}
+		np.sdautocons <- struct{}{}
 	}()
 }
 
@@ -137,6 +140,10 @@ func (np *NsqdProxy) isVailable(addr string) bool {
 
 func (np *NsqdProxy) Publish(topic string, msg []byte) {
 	for {
+		if np.stoped {
+			StormiFmtPrintln(magenta, np.cp.rdsAddr, "nsqd代理已关闭, 消息发送失败")
+			return
+		}
 		if len(np.producers) == 0 {
 			StormiFmtPrintln(magenta, np.cp.rdsAddr, "当前无可用nsqd节点, 等待一秒后重试")
 			time.Sleep(1 * time.Second)
@@ -220,10 +227,21 @@ func (np *NsqdProxy) autoConsume() {
 			}
 		}
 	}()
+	go func() {
+		<-np.sdautocons
+		if len(consmap) != 0 {
+			for _, cons := range consmap {
+				for _, con := range cons {
+					con.Stop()
+				}
+			}
+		}
+	}()
 }
 
 func (np *NsqdProxy) Stop() {
-	np.sd <- struct{}{}
+	np.sdautocon <- struct{}{}
+	np.stoped = true
 }
 
 func cycleTaskWithTriger(t time.Duration, handler func(), triger, sd chan struct{}) {
