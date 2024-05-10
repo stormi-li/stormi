@@ -61,7 +61,12 @@ func (cp ConfigProxy) RedisProxy() *RedisProxy {
 
 func NewConfigProxy(addr any) *ConfigProxy {
 	cp := &ConfigProxy{}
-	cp.rp = NewRedisProxy(addr)
+	rp, ok := addr.(*RedisProxy)
+	if ok {
+		cp.rp = rp
+	} else {
+		cp.rp = NewRedisProxy(addr)
+	}
 	cp.configHandlers = []ConfigHandler{}
 	cp.ConfigSet = map[string]map[string]*Config{}
 	cp.rdsAddr = cp.rp.addrs[0]

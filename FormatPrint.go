@@ -34,6 +34,8 @@ const (
 	// bgWhite   = "\x1b[47m"
 )
 
+var startlog = true
+
 func StormiPrintln(color string, content string) {
 	fmt.Println(color + "[stormi:" + time.Now().Truncate(time.Second).Format("2006-01-02 15:04:05") + "]:" + content + reset)
 }
@@ -43,7 +45,9 @@ func StormiPrint(color string, content string) {
 }
 
 func StormiFmtPrintln(color string, addr string, a ...any) {
-	fmt.Println(color+"[stormi-redis:"+addr+" "+time.Now().Truncate(time.Second).Format("2006-01-02 15:04:05")+"]:", a, reset)
+	if startlog {
+		fmt.Println(color+"[stormi-redis:"+addr+" "+time.Now().Truncate(time.Second).Format("2006-01-02 15:04:05")+"]:", a, reset)
+	}
 }
 
 func StormiFmtPrint(color string, addr string, a ...any) {

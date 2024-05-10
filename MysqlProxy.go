@@ -157,7 +157,6 @@ func (dtx *DTx) dtxhandle() {
 	pubsub := dtx.rp.GetPubSub(dtx.uuid)
 	go func() {
 		index := strconv.Itoa(dtx.index)
-		hiindex := hi + "@" + index
 		status := ""
 		if dtx.rollbacked {
 			status = rollbackwaiting + "@" + index
@@ -165,7 +164,6 @@ func (dtx *DTx) dtxhandle() {
 			status = commitwaiting + "@" + index
 		}
 		finishm := finished + "@" + index
-		dtx.rp.Notify(dtx.uuid, hi)
 		resp := dtx.rp.Subscribe(pubsub, 10*time.Second, func(msg string) int {
 			if msg == rollback {
 				dtx.rp.Notify(dtx.uuid, finishm+"@"+rollback)
@@ -174,9 +172,6 @@ func (dtx *DTx) dtxhandle() {
 			if msg == commit {
 				dtx.rp.Notify(dtx.uuid, finishm+"@"+commit)
 				return 1
-			}
-			if msg == hi {
-				dtx.rp.Notify(dtx.uuid, hiindex)
 			}
 			if msg == report {
 				dtx.rp.Notify(dtx.uuid, status)

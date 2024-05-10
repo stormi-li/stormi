@@ -44,10 +44,23 @@ func init() {
 }
 
 func NewTransactionProxy(addr any) *TransactionProxy {
-	rp := NewRedisProxy(addr)
 	tp := TransactionProxy{}
-	tp.rp = rp
+	rp, ok := addr.(*RedisProxy)
+	if ok {
+		tp.rp = rp
+	} else {
+		tp.rp = NewRedisProxy(addr)
+	}
 	return &tp
+}
+
+func (tp TransactionProxy) RedisProxy(num int) *RedisProxy {
+	if tp.rp != nil {
+		return tp.rp
+	} else {
+		StormiFmtPrintln(magenta, noredis, "未初始化redis代理")
+		return nil
+	}
 }
 
 func (tp TransactionProxy) NewDTxIds(num int) []string {
