@@ -24,6 +24,7 @@ func (tt ticker) Stamp() time.Duration {
 }
 
 func (tt *ticker) StampAndReset() time.Duration {
+	t := time.Since(tt.time)
 	tt.time = time.Now()
-	return time.Since(tt.time)
+	return t
 }
