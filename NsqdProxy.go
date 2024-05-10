@@ -128,6 +128,7 @@ func (np *NsqdProxy) autoConnect() {
 
 func (np *NsqdProxy) isVailable(addr string) bool {
 	c, _ := nsq.NewConsumer("connect-test", "test", nsq.NewConfig())
+	defer c.Stop()
 	c.SetLoggerLevel(nsq.LogLevelError)
 	c.AddHandler(nsq.HandlerFunc(func(message *nsq.Message) error { return nil }))
 	err := c.ConnectToNSQD(addr)

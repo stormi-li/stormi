@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type nodeBuilder struct{}
@@ -52,23 +50,26 @@ func (nodeBuilder) Install() {
 func (nodeBuilder) CreateNsqdNode(tcpPort int, httpPort int, path string) {
 	p1 := strconv.Itoa(tcpPort)
 	p2 := strconv.Itoa(httpPort)
-
 	s := runtime.GOOS
 	go func() {
 		if s == "windows" {
-			ExecCommand("start nsqd -tcp-address=0.0.0.0:" + p1 + " -http-address=0.0.0.0:" + p2 + " -data-path=" + path)
+			path = path + "\\nsqdnode" + strconv.Itoa(tcpPort)
+			os.MkdirAll(path, 0755)
+			ExecCommand("start nsqd --tcp-address=0.0.0.0:" + p1 + " --http-address=0.0.0.0:" + p2 + " --data-path=" + path)
 		} else {
-			ExecCommand("nohup nsqd -tcp-address=0.0.0.0:" + p1 + " -http-address=0.0.0.0:" + p2 + " -data-path=" + path + " >> run.log >/dev/nul 2>&1 &")
+			path = path + "/nsqdnode" + strconv.Itoa(tcpPort)
+			os.MkdirAll(path, 0755)
+			ExecCommand("nohup nsqd --tcp-address=0.0.0.0:" + p1 + " --http-address=0.0.0.0:" + p2 + " --data-path=" + path + " >> run.log >/dev/nul 2>&1 &")
 		}
 	}()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 }
 
 func (nodeBuilder) CreateRedisNode(port int, t int, ip string, path string) {
 	if t == NodeType.RedisCluster {
-		path = path + "/clusternode" + uuid.NewString()
+		path = path + "/clusternode" + strconv.Itoa(port)
 	} else if t == NodeType.RedisStandalone {
-		path = path + "/redisnode" + uuid.NewString()
+		path = path + "/redisnode" + strconv.Itoa(port)
 	} else {
 		StormiFmtPrintln(magenta, noredis, "类型错误")
 		return
@@ -121,7 +122,7 @@ func (nodeBuilder) createRedisNode(port int, path string) {
 			ExecCommand("nohup redis-server " + path + "/redis.conf >> run.log >/dev/nul 2>&1 &")
 		}
 	}()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 }
 
 func (nodeBuilder) createRedisCluster(port int, ip string, path string) {
@@ -147,7 +148,7 @@ func (nodeBuilder) createRedisCluster(port int, ip string, path string) {
 			ExecCommand("nohup redis-server " + path + "/redis.conf >> run.log >/dev/nul 2>&1 &")
 		}
 	}()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 }
 
 func (nodeBuilder) AddNodeToRedisCluster(newaddr, clusteraddr string, t int) {
