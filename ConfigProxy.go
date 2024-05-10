@@ -178,7 +178,7 @@ func (cp ConfigProxy) Refreshs(cset any) {
 
 func (cp ConfigProxy) upload(c Config, s string) {
 	if c.Name == "" || c.Addr == "" || c.UUID == "" {
-		StormiFmtPrintln(magenta, cp.rdsAddr, "配置信息不完全", c.ToConfigString())
+		StormiFmtPrintln(magenta, cp.rdsAddr, "配置信息不完全", c.ToJsonStr())
 	}
 	var ok int64
 	if cp.rp.isCluster {
@@ -190,10 +190,10 @@ func (cp ConfigProxy) upload(c Config, s string) {
 	}
 	if ok != 0 {
 		if s == "" {
-			StormiFmtPrintln(yellow, cp.rdsAddr, "配置刷新成功, 刷新配置:", c.ToConfigString())
+			StormiFmtPrintln(yellow, cp.rdsAddr, "配置刷新成功, 刷新配置:", c.ToJsonStr())
 			return
 		}
-		StormiFmtPrintln(yellow, cp.rdsAddr, "配置"+s+"成功, 新增配置:", c.ToConfigString())
+		StormiFmtPrintln(yellow, cp.rdsAddr, "配置"+s+"成功, 新增配置:", c.ToJsonStr())
 	}
 }
 
@@ -384,5 +384,19 @@ func (cp *ConfigProxy) RegisterRedisClusterNode() {
 		c.Name = "redis-cluster"
 		c.Addr = addr
 		cp.Register(c)
+	}
+}
+
+func (cp *ConfigProxy) ConfigPersistence() {
+	var err error
+	if cp.rp.isCluster {
+		err = cp.rp.rdsClusterClient.BgSave(context.Background()).Err()
+	} else if cp.rp.isConnected {
+		err = cp.rp.rdsClient.BgSave(context.Background()).Err()
+	} else {
+		StormiFmtPrintln(yellow, cp.rdsAddr, "未连接到redis, 持久化配置失败")
+	}
+	if err == nil {
+		StormiFmtPrintln(yellow, cp.rdsAddr, "redis持久化配置成功")
 	}
 }

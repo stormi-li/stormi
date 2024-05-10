@@ -287,7 +287,7 @@ func main() {
 
 ### 3.config代理的使用
 
-- ##### 注册配置信息到redis配置集
+- ##### 注册配置信息到redis配置集以及配置持久化
 
   ```go
   package main
@@ -302,6 +302,7 @@ func main() {
   	c.Name = "nsqd"
   	c.Addr = "127.0.0.1:3131"
   	cp.Register(c)
+      cp.ConfigPersistence()
   }
   ```
 
