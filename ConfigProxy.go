@@ -346,3 +346,20 @@ func (cp *ConfigProxy) Removes(cs []Config) {
 		cp.Remove(c)
 	}
 }
+
+func (cp *ConfigProxy) RegisterRedisStandalone(nodeId int) {
+	c := cp.NewConfig()
+	c.Name = "redis-single"
+	c.Addr = cp.rp.addrs[0]
+	c.NodeId = nodeId
+	cp.Register(c)
+}
+
+func (cp *ConfigProxy) RegisterRedisClusterNode() {
+	for _, addr := range cp.rp.addrs {
+		c := cp.NewConfig()
+		c.Name = "redis-cluster"
+		c.Addr = addr
+		cp.Register(c)
+	}
+}

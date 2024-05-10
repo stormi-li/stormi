@@ -67,18 +67,19 @@ func NewRedisProxy(addr interface{}) *RedisProxy {
 	return nil
 }
 
-func (rp *RedisProxy) RedisClient(id int) *redis.Client {
+func (rp *RedisProxy) RedisClient() *redis.Client {
 	if !rp.isConnected {
 		StormiFmtPrintln(red, "当前未连接到任何redis节点")
 	}
-	if rp.isCluster {
-		StormiFmtPrintln(magenta, rp.addrs[0], "当前redis为集群模式, 建议使用redis集群")
-	}
-	if id == 0 {
+	if rp.rdsClient != nil {
 		return rp.rdsClient
 	}
-	StormiFmtPrintln(magenta, rp.addrs[0], "无法在配置集里面找到该NodeId的节点, 已返回当前redis节点")
-	return rp.rdsClient
+	if rp.isCluster {
+		StormiFmtPrintln(magenta, rp.addrs[0], "当前redis代理为集群模式, 只能使用redis集群")
+	} else {
+		StormiFmtPrintln(magenta, rp.addrs[0], "未连接到任何redis节点")
+	}
+	return nil
 }
 
 func (rp *RedisProxy) RedisClusterClient() *redis.ClusterClient {
@@ -276,21 +277,4 @@ func (rp *RedisProxy) Publish(channel string, msg chan string, shutdown chan str
 			return
 		}
 	}
-}
-
-func (rp *RedisProxy) RegisterSingle(nodeId int, addr string) {
-	cp := NewConfigProxyByRedisProxy(rp)
-	c := cp.NewConfig()
-	c.Name = "redis-single"
-	c.Addr = addr
-	c.NodeId = nodeId
-	cp.Register(c)
-}
-
-func (rp *RedisProxy) RegisterCluster(addr string) {
-	cp := NewConfigProxyByRedisProxy(rp)
-	c := cp.NewConfig()
-	c.Name = "redis-cluster"
-	c.Addr = addr
-	cp.Register(c)
 }
