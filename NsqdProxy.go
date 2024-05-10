@@ -33,7 +33,7 @@ func NewNsqdProxy(addr any) *NsqdProxy {
 	np.sdautocon = make(chan struct{}, 1)
 	np.sdautocons = make(chan struct{}, 1)
 	np.refreshAddrs()
-	np.cp.SetConfigSyncNotficationHandler(func(configProxy ConfigProxy, msg string) {
+	np.cp.AddConfigSyncNotificationHandler(func(configProxy ConfigProxy, msg string) {
 		parts := strings.Split(msg, "@")
 		if len(parts) > 0 && parts[0] == "nsqd" {
 			StormiFmtPrintln(green, np.cp.rdsAddr, "接收到关于nsqd节点的通知:", msg, "更新nsqd连接")

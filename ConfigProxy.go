@@ -155,15 +155,25 @@ func (cp ConfigProxy) Register(c Config) {
 func (cp ConfigProxy) Update(c Config) {
 	if cp.IsExist(c) {
 		cp.upload(c, "修改")
-	} else {
-		StormiFmtPrintln(magenta, cp.rdsAddr, "配置不存在于配置集:", c.ToJsonStr())
 	}
 }
 
-func (cp ConfigProxy) Refreshs(cs []Config) {
-	for _, c := range cs {
-		cp.upload(c, "")
+func (cp ConfigProxy) Refreshs(cset any) {
+	cs, ok := cset.([]Config)
+	if ok {
+		for _, c := range cs {
+			cp.upload(c, "")
+		}
+		return
 	}
+	cmap, ok := cset.(map[string]Config)
+	if ok {
+		for _, c := range cmap {
+			cp.upload(c, "")
+		}
+		return
+	}
+	StormiFmtPrintln(magenta, cp.rdsAddr, "删除批量刷新配置失败, 只接受[]Config类型和map[string]Config类型")
 }
 
 func (cp ConfigProxy) upload(c Config, s string) {
@@ -180,6 +190,7 @@ func (cp ConfigProxy) upload(c Config, s string) {
 	}
 	if ok != 0 {
 		if s == "" {
+			StormiFmtPrintln(yellow, cp.rdsAddr, "配置刷新成功, 刷新配置:", c.ToConfigString())
 			return
 		}
 		StormiFmtPrintln(yellow, cp.rdsAddr, "配置"+s+"成功, 新增配置:", c.ToConfigString())
@@ -297,7 +308,7 @@ func (cp *ConfigProxy) autoSync() {
 
 var notifyhandlers []func(configProxy ConfigProxy, msg string)
 
-func (ConfigProxy) SetConfigSyncNotficationHandler(handler func(configProxy ConfigProxy, msg string)) {
+func (ConfigProxy) AddConfigSyncNotificationHandler(handler func(configProxy ConfigProxy, msg string)) {
 	notifyhandlers = append(notifyhandlers, handler)
 }
 
@@ -341,10 +352,22 @@ func (cp *ConfigProxy) RemoveRegister(name string) {
 	}
 }
 
-func (cp *ConfigProxy) Removes(cs []Config) {
-	for _, c := range cs {
-		cp.Remove(c)
+func (cp *ConfigProxy) Removes(cset any) {
+	cs, ok := cset.([]Config)
+	if ok {
+		for _, c := range cs {
+			cp.Remove(c)
+		}
+		return
 	}
+	cmap, ok := cset.(map[string]Config)
+	if ok {
+		for _, c := range cmap {
+			cp.Remove(c)
+		}
+		return
+	}
+	StormiFmtPrintln(magenta, cp.rdsAddr, "删除批量删除配置失败, 只能删除[]Config类型和map[string]Config类型")
 }
 
 func (cp *ConfigProxy) RegisterRedisStandalone(nodeId int) {
