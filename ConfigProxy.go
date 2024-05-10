@@ -148,7 +148,11 @@ func (cp ConfigProxy) Register(c Config) {
 }
 
 func (cp ConfigProxy) Update(c Config) {
-	cp.upload(c, "修改")
+	if cp.IsExist(c) {
+		cp.upload(c, "修改")
+	} else {
+		StormiFmtPrintln(magenta, cp.rdsAddr, "配置不存在于配置集:", c.ToJsonStr())
+	}
 }
 
 func (cp ConfigProxy) Refreshs(cs []Config) {
@@ -301,6 +305,7 @@ func (cp *ConfigProxy) AddConfigHandler(name string, handler func(cmap map[strin
 	ch.Name = name
 	ch.Handler = handler
 	cp.configHandlers = append(cp.configHandlers, ch)
+	cp.Sync()
 }
 
 func (cp *ConfigProxy) Remove(c Config) {

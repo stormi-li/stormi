@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type nodeBuilder struct{}
@@ -63,6 +65,15 @@ func (nodeBuilder) CreateNsqdNode(tcpPort int, httpPort int, path string) {
 }
 
 func (nodeBuilder) CreateRedisNode(port int, t int, ip string, path string) {
+	if t == NodeType.RedisCluster {
+		path = path + "/clusternode" + uuid.NewString()
+	} else if t == NodeType.RedisStandalone {
+		path = path + "/redisnode" + uuid.NewString()
+	} else {
+		StormiFmtPrintln(magenta, noredis, "类型错误")
+		return
+	}
+
 	if t == NodeType.RedisStandalone {
 		NodeBuilder.createRedisNode(port, path)
 	}
@@ -147,7 +158,7 @@ func (nodeBuilder) AddNodeToRedisCluster(newaddr, clusteraddr string, t int) {
 			ExecCommand("echo yes | redis-cli --cluster add-node " + newaddr + " " + clusteraddr + " --cluster-slave")
 		}
 	}()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 }
 
 func ExecCommand(cmd string) {

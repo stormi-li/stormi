@@ -8,10 +8,12 @@ import (
 )
 
 type ServerProxy struct {
-	configs []Config
-	rdsAddr string
-	cp      *ConfigProxy
-	sdreg   chan struct{}
+	configs             []Config
+	rdsAddr             string
+	cp                  *ConfigProxy
+	sdreg               chan struct{}
+	discoverstoped      bool
+	listenserverstarted bool
 }
 
 func NewServerProxy(addr any) *ServerProxy {
@@ -36,6 +38,10 @@ func (sp *ServerProxy) RedisProxy() *RedisProxy {
 }
 
 func (sp *ServerProxy) Register(name string, addr string, weight int, t time.Duration) {
+	addSIGINTHandler(func() {
+		sp.cp.Removes(sp.configs)
+		StormiFmtPrintln(green, sp.rdsAddr, "注册服务关闭, 服务名:", name, "地址:", addr, "权重:", weight, "心跳间隔:", t)
+	})
 	StormiFmtPrintln(green, sp.rdsAddr, "注册服务启动, 服务名:", name, "地址:", addr, "权重:", weight, "心跳间隔:", t)
 	for i := 0; i < weight; i++ {
 		c := sp.cp.NewConfig()
@@ -55,6 +61,7 @@ func (sp *ServerProxy) Register(name string, addr string, weight int, t time.Dur
 	go func() {
 		cycleTask(t, func() {
 			msgc <- t.String()
+			sp.cp.rp.Notify(name, addr)
 			sp.cp.Refreshs(sp.configs)
 		}, sdcyc)
 	}()
@@ -92,11 +99,25 @@ func cycleTask(t time.Duration, handler func(), sd chan struct{}) {
 	cycleTaskDelay(t, handler, sd)
 }
 
-func (sp *ServerProxy) Shutdown() {
+func (sp *ServerProxy) Stop() {
 	sp.sdreg <- struct{}{}
 }
 
 func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr string) error) {
+	go func() {
+		if sp.listenserverstarted {
+			return
+		}
+		sp.listenserverstarted = true
+		for {
+			res := sp.cp.rp.Wait(name, 1*time.Hour)
+			if res != "" && sp.discoverstoped {
+				StormiFmtPrintln(yellow, sp.rdsAddr, "检测到", name, "服务心跳, 地址:", res, ", 重启发现服务")
+				sp.discoverstoped = false
+				sp.Discover(name, t, handler)
+			}
+		}
+	}()
 	c := sp.discover(name)
 	if c == nil {
 		StormiFmtPrintln(magenta, sp.rdsAddr, "当前配置集未发现", name, "服务, 尝试从redis配置集重新拉取配置")
@@ -104,6 +125,7 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 		c = sp.discover(name)
 		if c == nil {
 			StormiFmtPrintln(magenta, sp.rdsAddr, "redis配置集未发现", name, "服务, 发现服务关闭")
+			sp.discoverstoped = true
 			return
 		}
 	}
