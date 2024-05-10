@@ -132,7 +132,7 @@ func main() {
 	// stormi.NodeBuilder.CreateRedisNode(1112, stormi.NodeType.RedisCluster, "C:\\Users\\lilili\\Desktop\\nsqd\\2", "192.168.1.103")
 	// stormi.NodeBuilder.AddNodeToRedisCluster("192.168.1.103:1112", "192.168.1.103:2221", stormi.NodeType.RedisSlave)
 	// stormi.NodeBuilder.CreateRedisCluster(8881, 8882, 8883, 8884, 8885, 8886, "192.168.1.103", "C:\\Users\\lilili\\Desktop\\rediscluster")
-	stormi.StartHardWord(stormi.NewRedisProxy("192.168.1.103:2221"))
+	// stormi.StormiChat(stormi.NewRedisProxy("192.168.1.103:8881"))
 	// if err := os.Setenv("CHCP", "65001"); err != nil {
 	// 	fmt.Println("设置字符编码失败：", err)
 	// 	return
@@ -144,6 +144,8 @@ func main() {
 	// var name string
 	// fmt.Scan(&name) //将终端输入的文本存储到name所指向的内存地址
 	// fmt.Println(name)
+	sc := stormi.NewStormiChat(stormi.NewRedisProxy("192.168.1.103:8881"))
+	sc.StartSub()
 }
 
 type Test struct {
