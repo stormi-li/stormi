@@ -88,12 +88,12 @@ func (nodeBuilder) CreateRedisNode(port int, t int, ip string, path string) {
 }
 
 func (n nodeBuilder) CreateRedisCluster(port1, port2, port3, port4, port5, port6 int, ip string, path string) {
-	n.CreateRedisNode(port1, NodeType.RedisCluster, ip, path+"/clusternode1")
-	n.CreateRedisNode(port2, NodeType.RedisCluster, ip, path+"/clusternode2")
-	n.CreateRedisNode(port3, NodeType.RedisCluster, ip, path+"/clusternode3")
-	n.CreateRedisNode(port4, NodeType.RedisCluster, ip, path+"/clusternode4")
-	n.CreateRedisNode(port5, NodeType.RedisCluster, ip, path+"/clusternode5")
-	n.CreateRedisNode(port6, NodeType.RedisCluster, ip, path+"/clusternode6")
+	n.CreateRedisNode(port1, NodeType.RedisCluster, ip, path)
+	n.CreateRedisNode(port2, NodeType.RedisCluster, ip, path)
+	n.CreateRedisNode(port3, NodeType.RedisCluster, ip, path)
+	n.CreateRedisNode(port4, NodeType.RedisCluster, ip, path)
+	n.CreateRedisNode(port5, NodeType.RedisCluster, ip, path)
+	n.CreateRedisNode(port6, NodeType.RedisCluster, ip, path)
 	nodes := ip + ":" + strconv.Itoa(port1) + " "
 	nodes = nodes + ip + ":" + strconv.Itoa(port2) + " "
 	nodes = nodes + ip + ":" + strconv.Itoa(port3) + " "
