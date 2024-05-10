@@ -9,6 +9,6 @@ func GitHubUrl() {
 	fmt.Println(green+"资源地址: https://github.com/stormi-li/stormi-bin-resource", reset)
 }
 
-func CloseLogger() {
-	startlog = false
+func SetLoggerLevel(level int) {
+	loggerLevel = level
 }
