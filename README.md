@@ -543,34 +543,53 @@ func main() {
 package main
 
 import (
-	"time"
-
 	"github.com/stormi-li/stormi"
 )
 
 func main() {
-	cp := stormi.NewServerProxy("127.0.0.1:2131")
-	cp.ConfigProxy().AddConfigSyncNotificationHandler(func(configProxy stormi.ConfigProxy, msg string) {})
-	cp.Register("stormiserver", "127.0.0.1:8888", 3, 3*time.Second)
-	select {}
-}
------------------------------------------------------------
-package main
-
-import (
-	"fmt"
-	"time"
-
-	"github.com/stormi-li/stormi"
-)
-
-func main() {
-	cp := stormi.NewServerProxy("127.0.0.1:2131")
-	cp.Discover("stormiserver", 3*time.Second, func(addr string) error {
-		fmt.Println(addr)
-		return nil
-	})
-	select {}
+	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp.Register(33061, "192.168.37.132:3306", "root", "123456", "stormi")
 }
 ```
 
+- ##### 连接数据库
+
+```go
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp.ConnectByNodeId(33061)
+}
+```
+
+- ##### 创建ConfigTable，并插入数据
+
+```go
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp.ConnectByNodeId(33061)
+	ct := ConfigTable{}
+	mp.DB().AutoMigrate(&ct)
+	ct.Name = "nsqd"
+	ct.Addr = "127.0.0.1:3131"
+	mp.DB().Create(&ct)
+}
+
+type ConfigTable struct {
+	Name string
+	Addr string
+}
+```
+
+### 6.transaction代理的使用
