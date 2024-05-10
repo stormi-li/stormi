@@ -3,8 +3,10 @@ package stormi
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -29,6 +31,22 @@ func init() {
 	NodeType.RedisSlave = 4
 }
 
+func (nodeBuilder) Install() {
+	var binpath string
+	_, filename, _, _ := runtime.Caller(0)
+	s := runtime.GOOS
+	if s == "windows" {
+		binpath = filepath.Dir(filename) + "\\bin-windows"
+		gopath := os.Getenv("GOPATH")
+		FileProxy.copyAllFiles(binpath, gopath+"\\bin")
+	} else {
+		binpath = filepath.Dir(filename) + "/bin-linux"
+		gopath := os.Getenv("GOPATH")
+		FileProxy.copyAllFiles(binpath, gopath+"/bin")
+	}
+
+}
+
 func (nodeBuilder) CreateNsqdNode(tcpPort int, httpPort int, path string) {
 	p1 := strconv.Itoa(tcpPort)
 	p2 := strconv.Itoa(httpPort)
@@ -50,7 +68,7 @@ func (nodeBuilder) CreateRedisNode(port int, t int, ip string, path string) {
 	}
 	if t == NodeType.RedisCluster {
 		if ip == "" {
-			StormiFmtPrintln(magenta, "0.0.0.0:0", "请设置redis集群节点ip")
+			StormiFmtPrintln(magenta, noredis, "请设置redis集群节点ip")
 			return
 		}
 		NodeBuilder.createRedisCluster(port, ip, path)
@@ -133,10 +151,11 @@ func (nodeBuilder) AddNodeToRedisCluster(newaddr, clusteraddr string, t int) {
 }
 
 func ExecCommand(cmd string) {
-	StormiFmtPrintln(green, "0.0.0.0:0", "执行脚本:", cmd)
+	StormiFmtPrintln(green, noredis, "执行脚本:", cmd)
 	os := runtime.GOOS
 
 	if os == "windows" {
+		cmd := strings.ReplaceAll(cmd, "/", "\\")
 		exec.Command("cmd", "/C", cmd).CombinedOutput()
 	} else {
 		exec.Command("bash", "-c", cmd).CombinedOutput()

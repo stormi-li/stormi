@@ -101,3 +101,52 @@ func (FileOpt) GetAvailableConfigFileName(path string) string {
 	}
 	return strconv.Itoa(n + 1)
 }
+
+func (FileOpt) copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return err
+	}
+
+	err = dstFile.Sync()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f FileOpt) copyAllFiles(srcDir, dstDir string) error {
+	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if path != srcDir {
+			dstPath := filepath.Join(dstDir, info.Name())
+			if info.Mode().IsRegular() {
+				err := f.copyFile(path, dstPath)
+				if err != nil {
+					return err
+				}
+				StormiFmtPrintln(yellow, noredis, "已安装:", info.Name(), "到", dstDir)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}

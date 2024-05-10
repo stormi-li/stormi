@@ -144,8 +144,10 @@ func main() {
 	// var name string
 	// fmt.Scan(&name) //将终端输入的文本存储到name所指向的内存地址
 	// fmt.Println(name)
-	sc := stormi.NewStormiChat(stormi.NewRedisProxy("192.168.1.103:8881"))
-	sc.StartSub()
+	// sc := stormi.NewStormiChat(stormi.NewRedisProxy("192.168.1.103:8881"))
+	// sc.StartSub()
+	// stormi.NodeBuilder.CreateNsqdNode(3333, 3334, "C:\\Users\\lilili\\Desktop\\nsqd")
+	stormi.NodeBuilder.Install()
 }
 
 type Test struct {
