@@ -16,14 +16,11 @@ type ServerProxy struct {
 	listenserverstarted bool
 }
 
-func NewServerProxy(addr any) *ServerProxy {
-	cp, ok := addr.(*ConfigProxy)
+func NewServerProxy(cp *ConfigProxy) *ServerProxy {
 	sp := ServerProxy{}
-	if ok {
-		sp.cp = cp
-	} else {
-		sp.cp = NewConfigProxy(addr)
-	}
+
+	sp.cp = cp
+
 	sp.rdsAddr = sp.cp.rdsAddr
 	sp.sdreg = make(chan struct{}, 1)
 	return &sp

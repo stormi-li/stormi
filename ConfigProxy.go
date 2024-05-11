@@ -3,6 +3,7 @@ package stormi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -59,29 +60,14 @@ func (cp ConfigProxy) RedisProxy() *RedisProxy {
 	return cp.rp
 }
 
-func NewConfigProxy(addr any) *ConfigProxy {
-	cp := &ConfigProxy{}
-	rp, ok := addr.(*RedisProxy)
-	if ok {
-		cp.rp = rp
-	} else {
-		cp.rp = NewRedisProxy(addr)
-	}
-	cp.configHandlers = []ConfigHandler{}
-	cp.ConfigSet = map[string]map[string]*Config{}
-	cp.rdsAddr = cp.rp.addrs[0]
-	cp.autoSync()
-	return cp
-}
-
-func NewConfigProxyByRedisProxy(rp *RedisProxy) *ConfigProxy {
-	cp := &ConfigProxy{}
+func NewConfigProxy(rp *RedisProxy) *ConfigProxy {
+	cp := ConfigProxy{}
 	cp.rp = rp
 	cp.configHandlers = []ConfigHandler{}
 	cp.ConfigSet = map[string]map[string]*Config{}
 	cp.rdsAddr = cp.rp.addrs[0]
 	cp.autoSync()
-	return cp
+	return &cp
 }
 
 func (cp ConfigProxy) NewConfig() Config {
@@ -177,15 +163,21 @@ func (cp ConfigProxy) Refreshs(cset any) {
 }
 
 func (cp ConfigProxy) upload(c Config, s string) {
-	if c.Name == "" || c.Addr == "" || c.UUID == "" {
-		StormiFmtPrintln(magenta, cp.rdsAddr, "配置信息不完全", c.ToJsonStr())
-	}
+	fmt.Println(c.ToJsonStr())
 	var ok int64
+	if c.Name != "" {
+		if cp.rp.isCluster {
+			cp.rp.rdsClusterClient.SAdd(context.Background(), configRegisterPrefix, c.Name)
+		} else if cp.rp.isConnected {
+			cp.rp.rdsClient.SAdd(context.Background(), configRegisterPrefix, c.Name)
+		}
+	}
+	if c.Addr == "" || c.UUID == "" {
+		return
+	}
 	if cp.rp.isCluster {
-		cp.rp.rdsClusterClient.SAdd(context.Background(), configRegisterPrefix, c.Name)
 		ok, _ = cp.rp.rdsClusterClient.HSet(context.Background(), configAddrPrefix+c.Name, c.Addr+"@"+c.UUID, c.ToString()).Result()
-	} else {
-		cp.rp.rdsClient.SAdd(context.Background(), configRegisterPrefix, c.Name)
+	} else if cp.rp.isConnected {
 		ok, _ = cp.rp.rdsClient.HSet(context.Background(), configAddrPrefix+c.Name, c.Addr+"@"+c.UUID, c.ToString()).Result()
 	}
 	if ok != 0 {
@@ -213,7 +205,6 @@ func (cp ConfigProxy) Pull(name string) map[string]Config {
 		}
 		return cmap
 	}
-	StormiFmtPrintln(magenta, cp.rdsAddr, "配置名不存在任何配置信息, name:", name, "建议在register里删除")
 	return nil
 }
 
@@ -240,10 +231,23 @@ func (cp ConfigProxy) IsExist(c Config) bool {
 	var exist string
 	if cp.rp.isCluster {
 		exist, _ = cp.rp.rdsClusterClient.HGet(context.Background(), configAddrPrefix+c.Name, c.Addr+"@"+c.UUID).Result()
-	} else {
+	} else if cp.rp.isConnected {
 		exist, _ = cp.rp.rdsClient.HGet(context.Background(), configAddrPrefix+c.Name, c.Addr+"@"+c.UUID).Result()
 	}
 	if exist != "" {
+		return true
+	}
+	return false
+}
+
+func (cp ConfigProxy) IsRegistered(name string) bool {
+	var exist bool
+	if cp.rp.isCluster {
+		exist, _ = cp.rp.rdsClusterClient.SIsMember(context.Background(), configRegisterPrefix, name).Result()
+	} else if cp.rp.isConnected {
+		exist, _ = cp.rp.rdsClient.SIsMember(context.Background(), configRegisterPrefix, name).Result()
+	}
+	if exist {
 		return true
 	}
 	return false

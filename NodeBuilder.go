@@ -38,11 +38,11 @@ func (nodeBuilder) Install() {
 	if s == "windows" {
 		binpath = filepath.Dir(filename) + "\\bin-windows"
 		gopath := os.Getenv("GOPATH")
-		FileProxy.copyAllFiles(binpath, gopath+"\\bin")
+		FileOpt.copyAllFiles(binpath, gopath+"\\bin")
 	} else {
 		binpath = filepath.Dir(filename) + "/bin-linux"
 		gopath := os.Getenv("GOPATH")
-		FileProxy.copyAllFiles(binpath, gopath+"/bin")
+		FileOpt.copyAllFiles(binpath, gopath+"/bin")
 	}
 
 }
@@ -105,15 +105,15 @@ func (n nodeBuilder) CreateRedisCluster(port1, port2, port3, port4, port5, port6
 
 func (nodeBuilder) createRedisNode(port int, path string) {
 	os.MkdirAll(path, 0755)
-	FileProxy.TruncateFile(path + "/redis.conf")
-	FileProxy.AppendToFile(path+"/redis.conf", "bind 0.0.0.0\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "daemonize yes\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "protected-mode no\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "databases 1\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "port "+strconv.Itoa(port)+"\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "dir "+path+"\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "always-show-logo yes\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "loglevel verbose\n")
+	FileOpt.TruncateFile(path + "/redis.conf")
+	FileOpt.AppendToFile(path+"/redis.conf", "bind 0.0.0.0\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "daemonize yes\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "protected-mode no\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "databases 1\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "port "+strconv.Itoa(port)+"\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "dir "+path+"\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "always-show-logo yes\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "loglevel verbose\n")
 	s := runtime.GOOS
 	go func() {
 		if s == "windows" {
@@ -127,19 +127,19 @@ func (nodeBuilder) createRedisNode(port int, path string) {
 
 func (nodeBuilder) createRedisCluster(port int, ip string, path string) {
 	os.MkdirAll(path, 0755)
-	FileProxy.TruncateFile(path + "/redis.conf")
-	FileProxy.AppendToFile(path+"/redis.conf", "bind 0.0.0.0\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "daemonize yes\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "protected-mode no\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "databases 1\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "port "+strconv.Itoa(port)+"\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "dir "+path+"\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "always-show-logo yes\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "loglevel verbose\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "cluster-enabled yes\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "cluster-node-timeout 5000\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "cluster-config-file "+path+"/nodes.conf\n")
-	FileProxy.AppendToFile(path+"/redis.conf", "replica-announce-ip "+ip+"\n")
+	FileOpt.TruncateFile(path + "/redis.conf")
+	FileOpt.AppendToFile(path+"/redis.conf", "bind 0.0.0.0\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "daemonize yes\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "protected-mode no\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "databases 1\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "port "+strconv.Itoa(port)+"\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "dir "+path+"\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "always-show-logo yes\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "loglevel verbose\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "cluster-enabled yes\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "cluster-node-timeout 5000\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "cluster-config-file "+path+"/nodes.conf\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "replica-announce-ip "+ip+"\n")
 	s := runtime.GOOS
 	go func() {
 		if s == "windows" {

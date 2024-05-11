@@ -2,7 +2,7 @@
 
 ## 简介
 
-​		stormi框架所原创的代理方案集成了类似spring的容器方案，springboot的自动配置方案和springcloud的微服务方案的功能，并且更容易使用，功能更强大，可扩展性更强。stormi原生集成了服务注册与发现，分布式锁，和分布式事务等功能，还提供了一套进程间（跨主机）通信的解决方案，让软件的开发真正实现跨主机联动，使得多人同时开发同一个功能成为现实。该框架已经给各位实现了redis代理，config代理，server代理，mysql代理，transaction代理，nsqd代理，其中最强大的是redis代理和config代理，这两个代理是最底层的代理，所有的代理都依赖这两个代理，其他开发人员可以使用这两个代理开发自己的代理，同时我希望各位开发人员如果觉得该框架好用的话可以开发和开源自己的代理，让我们一起搭建比spring生态更加强大的stormi生态。
+​		stormi框架所原创的代理方案集成了类似spring的容器方案，springboot的自动配置方案和springcloud的微服务方案的功能，并且更容易使用，功能更强大，可扩展性更强。stormi原生集成了服务注册与发现，分布式锁，和分布式事务等功能，还提供了一套进程间（跨主机）通信的解决方案，让微服务的开发真正实现跨主机联动，使得多人同时开发同一个功能成为现实，该方案还能 案的灵活性、可用性和易用性优于当前所有的其它方案。该框架已经给各位实现了redis代理，config代理，server代理，mysql代理，transaction代理，nsqd代理和cooperation代理，其中最强大的是redis代理和config代理，这两个代理是最底层的代理，所有的代理都依赖这两个代理，其他开发人员可以使用这两个代理开发自己的代理，同时我希望各位开发人员如果觉得该框架好用的话可以多多开发和开源自己的代理，让我们一起搭建比spring生态更加强大的stormi生态。
 
 ## 使用教程
 
@@ -297,7 +297,7 @@ func main() {
   )
   
   func main() {
-  	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+  	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
   	c := cp.NewConfig()
   	c.Name = "nsqd"
   	c.Addr = "127.0.0.1:3131"
@@ -318,7 +318,7 @@ func main() {
   )
   
   func main() {
-  	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+  	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
   	cmap := cp.Pull("nsqd")
   	for _, c := range cmap {
   		fmt.Printf("c: %v\n", c)
@@ -336,7 +336,7 @@ func main() {
   )
   
   func main() {
-  	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+  	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
   	cmap := cp.Pull("nsqd")
   	for _, c := range cmap {
   		c.Ignore = true
@@ -355,7 +355,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	cmap := cp.Pull("nsqd")
 	for _, c := range cmap {
 		c.Ignore = true
@@ -375,7 +375,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	c1 := cp.NewConfig()
 	c1.Name = "nsqd"
 	c1.Addr = "127.0.0.1:3131"
@@ -397,7 +397,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	cmap := cp.Pull("nsqd")
 	cp.Removes(cmap)
 }
@@ -415,7 +415,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	time.Sleep(3 * time.Second)
 	cp.Sync()
 }
@@ -430,7 +430,7 @@ package main
 import "github.com/stormi-li/stormi"
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213")
     select{}
 }
 -----------------------------------------------------------
@@ -439,7 +439,7 @@ package main
 import "github.com/stormi-li/stormi"
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213")
 	cp.NotifySync("同步信息")
 }
 ```
@@ -456,7 +456,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213")
 	cp.AddConfigHandler("nsqd", func(cmap map[string]*stormi.Config) {
 		for _, c := range cmap {
 			fmt.Printf("c: %v\n", c)
@@ -477,7 +477,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213")
 	cp.AddConfigSyncNotficationHandler(func(configProxy stormi.ConfigProxy, msg string) {
 		fmt.Println(msg)
 	})
@@ -491,7 +491,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewConfigProxy("127.0.0.1:2131")
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213")
 	cp.NotifySync("同步新配置")
 }
 ```
@@ -510,7 +510,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewServerProxy("127.0.0.1:2131")
+	cp := stormi.NewServerProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	cp.ConfigProxy().AddConfigSyncNotificationHandler(func(configProxy stormi.ConfigProxy, msg string) {})
 	cp.Register("stormiserver", "127.0.0.1:8888", 3, 3*time.Second)
 	select {}
@@ -526,7 +526,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewServerProxy("127.0.0.1:2131")
+	cp := stormi.NewServerProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	cp.Discover("stormiserver", 3*time.Second, func(addr string) error {
 		fmt.Println(addr)
 		return nil
@@ -547,7 +547,7 @@ import (
 )
 
 func main() {
-	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	mp.Register(33061, "192.168.37.132:3306", "root", "123456", "stormi")
 }
 ```
@@ -562,7 +562,7 @@ import (
 )
 
 func main() {
-	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	mp.ConnectByNodeId(33061)
 }
 ```
@@ -577,7 +577,7 @@ import (
 )
 
 func main() {
-	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	mp.ConnectByNodeId(33061)
 	ct := ConfigTable{}
 	mp.DB().AutoMigrate(&ct)
@@ -608,7 +608,7 @@ import (
 )
 
 func main() {
-	tp := stormi.NewTransactionProxy("127.0.0.1:2131")
+	tp := stormi.NewTransactionProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	ids := tp.NewDTxIds(3)
 	server1(ids[0])
 	server2(ids[1])
@@ -621,7 +621,7 @@ func main() {
 }
 
 func server1(id string) {
-	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	mp.ConnectByNodeId(33061)
 	ct := ConfigTable{}
 	ct.Name = "nsqd"
@@ -631,7 +631,7 @@ func server1(id string) {
 	dtx.Rollback()
 }
 func server2(id string) {
-	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	mp.ConnectByNodeId(33061)
 	ct := ConfigTable{}
 	ct.Name = "nsqd"
@@ -641,7 +641,7 @@ func server2(id string) {
 	dtx.Commit()
 }
 func server3(id string) {
-	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	mp.ConnectByNodeId(33061)
 	ct := ConfigTable{}
 	ct.Name = "nsqd"
@@ -655,7 +655,6 @@ type ConfigTable struct {
 	Name string
 	Addr string
 }
-
 ```
 
 
@@ -672,7 +671,7 @@ import (
 )
 
 func main() {
-	np := stormi.NewNsqdProxy("127.0.0.1:2131")
+	np := stormi.NewNsqdProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	stormi.NodeBuilder.CreateNsqdNode(4441, 4442, "C:\\Users\\lilili\\Desktop\\nsqd")
 	stormi.NodeBuilder.CreateNsqdNode(4443, 4444, "C:\\Users\\lilili\\Desktop\\nsqd")
 	stormi.NodeBuilder.CreateNsqdNode(4445, 4446, "C:\\Users\\lilili\\Desktop\\nsqd")
@@ -699,7 +698,7 @@ import (
 )
 
 func main() {
-	np := stormi.NewNsqdProxy("127.0.0.1:2131")
+	np := stormi.NewNsqdProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
 	np.AddConsumeHandler("stormi-nsqd", "channel1", func(message *nsq.Message) error {
 		fmt.Println(string(message.Body))
 		return nil
@@ -708,6 +707,60 @@ func main() {
 		np.Publish("stormi-nsqd", []byte(uuid.NewString()))
 		time.Sleep(200 * time.Millisecond)
 	}
+}
+```
+
+### 9.其它小工具的使用
+
+- ##### Timer计时器的使用
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	t := stormi.Utils.NewTimer()
+	time.Sleep(100 * time.Millisecond)
+	fmt.Println(t.Stamp())
+	time.Sleep(100 * time.Millisecond)
+	fmt.Println(t.StampAndReset())
+	for i := 0; i < 200; i++ {
+		c := i * i
+		fmt.Println(c)
+	}
+	fmt.Println(t.Stamp())
+}
+```
+
+- ##### StormiChat聊天室的使用
+
+```go
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	sc := stormi.NewStormiChat(stormi.NewRedisProxy("127.0.0.1:2131"))
+	sc.StartSub()
+}
+-----------------------------------------------------------
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	sc := stormi.NewStormiChat(stormi.NewRedisProxy("127.0.0.1:2131"))
+	sc.StartPub()
 }
 ```
 

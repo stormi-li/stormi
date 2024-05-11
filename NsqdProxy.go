@@ -20,14 +20,10 @@ type NsqdProxy struct {
 	stoped         bool
 }
 
-func NewNsqdProxy(addr any) *NsqdProxy {
-	cp, ok := addr.(*ConfigProxy)
+func NewNsqdProxy(cp *ConfigProxy) *NsqdProxy {
 	np := NsqdProxy{}
-	if ok {
-		np.cp = cp
-	} else {
-		np.cp = NewConfigProxy(addr)
-	}
+	np.cp = cp
+
 	np.proReconnect = make(chan struct{}, 1)
 	np.consReconnect = make(chan struct{}, 1)
 	np.sdautocon = make(chan struct{}, 1)

@@ -43,14 +43,11 @@ func init() {
 
 }
 
-func NewTransactionProxy(addr any) *TransactionProxy {
+func NewTransactionProxy(rp *RedisProxy) *TransactionProxy {
 	tp := TransactionProxy{}
-	rp, ok := addr.(*RedisProxy)
-	if ok {
-		tp.rp = rp
-	} else {
-		tp.rp = NewRedisProxy(addr)
-	}
+
+	tp.rp = rp
+
 	return &tp
 }
 

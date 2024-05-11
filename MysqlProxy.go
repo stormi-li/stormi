@@ -17,14 +17,11 @@ type MysqlProxy struct {
 	db *gorm.DB
 }
 
-func NewMysqlProxy(addr any) *MysqlProxy {
-	cp, ok := addr.(*ConfigProxy)
+func NewMysqlProxy(cp *ConfigProxy) *MysqlProxy {
 	mp := MysqlProxy{}
-	if ok {
-		mp.cp = cp
-	} else {
-		mp.cp = NewConfigProxy(addr)
-	}
+
+	mp.cp = cp
+
 	return &mp
 }
 

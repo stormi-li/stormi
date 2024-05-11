@@ -4,24 +4,27 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
-type FileOpt struct {
+type fileOpt struct {
 }
 
-var FileProxy FileOpt
+var FileOpt fileOpt
 
-func (FileOpt) WriteToFile(filename string, ss []string) {
-	FileProxy.CreateFileNX(filename)
-	// FileProxy.TruncateFile(filename)
+func (fileOpt) WriteToFile(filename string, ss []string) {
+	FileOpt.CreateFileNX(filename)
 	for _, s := range ss {
-		FileProxy.AppendToFile(filename, s)
+		FileOpt.AppendToFile(filename, s)
 	}
 }
 
-func (FileOpt) TruncateFile(filename string) {
-	FileProxy.CreateFileNX(filename)
+func (fileOpt) TruncateFile(filename string) {
+	FileOpt.CreateFileNX(filename)
 	file, _ := os.OpenFile(filename, os.O_RDWR, 0644)
 
 	defer file.Close()
@@ -29,7 +32,7 @@ func (FileOpt) TruncateFile(filename string) {
 	file.Truncate(0)
 }
 
-func (FileOpt) CreateFileNX(filename string) {
+func (fileOpt) CreateFileNX(filename string) {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		file, err := os.Create(filename)
 		if err != nil {
@@ -39,7 +42,7 @@ func (FileOpt) CreateFileNX(filename string) {
 	}
 }
 
-func (f FileOpt) AppendToFile(filename string, s string) {
+func (f fileOpt) AppendToFile(filename string, s string) {
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		StormiFmtPrintln(magenta, "打开文件时出错"+err.Error())
@@ -57,7 +60,7 @@ func (f FileOpt) AppendToFile(filename string, s string) {
 	}
 }
 
-func (FileOpt) GetMaxConfigFileName(path string) string {
+func (fileOpt) GetMaxConfigFileName(path string) string {
 	dirPath := path
 
 	files, err := os.ReadDir(dirPath)
@@ -93,8 +96,8 @@ func (FileOpt) GetMaxConfigFileName(path string) string {
 	return strconv.Itoa(n + 1)
 }
 
-func (FileOpt) GetAvailableConfigFileName(path string) string {
-	name := FileProxy.GetMaxConfigFileName(path)
+func (fileOpt) GetAvailableConfigFileName(path string) string {
+	name := FileOpt.GetMaxConfigFileName(path)
 	n, err := strconv.Atoi(name)
 	if err != nil {
 		return name
@@ -102,7 +105,7 @@ func (FileOpt) GetAvailableConfigFileName(path string) string {
 	return strconv.Itoa(n + 1)
 }
 
-func (FileOpt) copyFile(src, dst string) error {
+func (fileOpt) copyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
@@ -128,7 +131,7 @@ func (FileOpt) copyFile(src, dst string) error {
 	return nil
 }
 
-func (f FileOpt) copyAllFiles(srcDir, dstDir string) error {
+func (f fileOpt) copyAllFiles(srcDir, dstDir string) error {
 	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -149,4 +152,97 @@ func (f FileOpt) copyAllFiles(srcDir, dstDir string) error {
 		return err
 	}
 	return nil
+}
+
+func (f fileOpt) Mkdir(path string) {
+	os.MkdirAll(path, 0755)
+}
+
+func (f fileOpt) IsExistFile(filename string) bool {
+	if _, err := os.Stat(filename); err == nil {
+		return true
+	} else if os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func isFirstCharUpperCaseLetter(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	firstRune, _ := utf8.DecodeRuneInString(s)
+	return unicode.IsLetter(firstRune) && unicode.IsUpper(firstRune)
+}
+func pathChange(path string) string {
+	os := runtime.GOOS
+	if os == "windows" {
+		return strings.ReplaceAll(path, "/", "\\")
+	} else {
+		return strings.ReplaceAll(path, "\\", "/")
+	}
+}
+func (f fileOpt) createCoprotocol(name string) {
+	path := f.GoModDir() + "/" + coprotocol + "/" + name
+	f.Mkdir(path)
+	filename := path + "/" + name + ".go"
+	if f.IsExistFile(filename) {
+		StormiFmtPrintln(magenta, noredis, "已存在文件:", pathChange(filename))
+		return
+	}
+	f.CreateFileNX(filename)
+	f.AppendToFile(filename, "package "+name)
+	f.AppendToFile(filename, "\n")
+	f.AppendToFile(filename, "//方法")
+	f.AppendToFile(filename, "const (")
+	f.AppendToFile(filename, "	Func1 = iota")
+	f.AppendToFile(filename, "	Func2")
+	f.AppendToFile(filename, ")")
+	f.AppendToFile(filename, "\n")
+	f.AppendToFile(filename, "//数据传输结构体")
+	f.AppendToFile(filename, "type "+name+"Dto struct {")
+	f.AppendToFile(filename, "	Code    int")
+	f.AppendToFile(filename, "	Message string")
+	f.AppendToFile(filename, "	Data    string")
+	f.AppendToFile(filename, "}")
+}
+
+func (f fileOpt) decodeCoprotocol(name string) string {
+	path := f.GoModDir() + "/" + coprotocol + "/" + name
+	f.Mkdir(path)
+	filename := path + "/" + name + ".go"
+	if !f.IsExistFile(filename) {
+		StormiFmtPrintln(magenta, noredis, "不存在文件:", pathChange(filename))
+		return ""
+	}
+	return f.ReadFile(filename)
+}
+
+func (f fileOpt) ReadFile(filename string) string {
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return ""
+	}
+	return string(content)
+}
+
+func (f fileOpt) GoModDir() string {
+	cwd, _ := os.Getwd()
+	dir := cwd
+	for {
+		goModPath := filepath.Join(dir, "go.mod")
+		_, err := os.Stat(goModPath)
+		if err == nil {
+			return dir
+		} else if !os.IsNotExist(err) {
+			return cwd
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return cwd
 }
