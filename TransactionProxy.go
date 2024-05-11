@@ -17,6 +17,7 @@ const (
 	report          = "report"
 	finished        = "finished"
 	hi              = "hi"
+	stop            = "stop"
 )
 
 type TransactionProxy struct {

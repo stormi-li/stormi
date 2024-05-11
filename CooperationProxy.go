@@ -78,11 +78,3 @@ func (cop *CooperationProxy) pullCoprotocol() {
 		FileOpt.AppendToFile(filename, procode)
 	}
 }
-
-func (cop *CooperationProxy) NewHandler() {
-	cop.pullCoprotocol()
-
-}
-func (cop *CooperationProxy) NewCaller() {
-	cop.pullCoprotocol()
-}
