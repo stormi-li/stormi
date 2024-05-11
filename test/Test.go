@@ -5,16 +5,8 @@ import (
 )
 
 func main() {
-	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
-	mp.ConnectByNodeId(33061)
-	ct := ConfigTable{}
-	mp.DB().AutoMigrate(&ct)
-	ct.Name = "nsqd"
-	ct.Addr = "127.0.0.1:3131"
-	mp.DB().Create(&ct)
-}
-
-type ConfigTable struct {
-	Name string
-	Addr string
+	stormi.NodeBuilder.CreateNsqdNode(4441, 4442, "C:\\Users\\lilili\\Desktop\\nsqd")
+	stormi.NodeBuilder.CreateNsqdNode(4443, 4444, "C:\\Users\\lilili\\Desktop\\nsqd")
+	stormi.NodeBuilder.CreateNsqdNode(4445, 4446, "C:\\Users\\lilili\\Desktop\\nsqd")
+	stormi.NodeBuilder.CreateNsqdNode(4447, 4448, "C:\\Users\\lilili\\Desktop\\nsqd")
 }

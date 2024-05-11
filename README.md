@@ -593,3 +593,121 @@ type ConfigTable struct {
 ```
 
 ### 6.transaction代理的使用
+
+- ##### 使用分布式事务
+
+```go
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	"strconv"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	tp := stormi.NewTransactionProxy("127.0.0.1:2131")
+	ids := tp.NewDTxIds(3)
+	server1(ids[0])
+	server2(ids[1])
+	server3(ids[2])
+	tp.DCommit(ids, func(statement [][2]string) {
+		fmt.Println("分布式事务失败")
+		fmt.Println(statement)
+	})
+	select {}
+}
+
+func server1(id string) {
+	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp.ConnectByNodeId(33061)
+	ct := ConfigTable{}
+	ct.Name = "nsqd"
+	ct.Addr = "127.0.0.1:" + strconv.Itoa(rand.Intn(10000))
+	dtx := mp.NewDTx(id)
+	dtx.DB().Create(&ct)
+	dtx.Rollback()
+}
+func server2(id string) {
+	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp.ConnectByNodeId(33061)
+	ct := ConfigTable{}
+	ct.Name = "nsqd"
+	ct.Addr = "127.0.0.1:" + strconv.Itoa(rand.Intn(10000))
+	dtx := mp.NewDTx(id)
+	dtx.DB().Create(&ct)
+	dtx.Commit()
+}
+func server3(id string) {
+	mp := stormi.NewMysqlProxy("127.0.0.1:2131")
+	mp.ConnectByNodeId(33061)
+	ct := ConfigTable{}
+	ct.Name = "nsqd"
+	ct.Addr = "127.0.0.1:" + strconv.Itoa(rand.Intn(10000))
+	dtx := mp.NewDTx(id)
+	dtx.DB().Create(&ct)
+	dtx.Commit()
+}
+
+type ConfigTable struct {
+	Name string
+	Addr string
+}
+
+```
+
+
+
+### 7.nsqd代理的使用
+
+- ##### 搭建nsqd集群
+
+```go
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	np := stormi.NewNsqdProxy("127.0.0.1:2131")
+	stormi.NodeBuilder.CreateNsqdNode(4441, 4442, "C:\\Users\\lilili\\Desktop\\nsqd")
+	stormi.NodeBuilder.CreateNsqdNode(4443, 4444, "C:\\Users\\lilili\\Desktop\\nsqd")
+	stormi.NodeBuilder.CreateNsqdNode(4445, 4446, "C:\\Users\\lilili\\Desktop\\nsqd")
+	stormi.NodeBuilder.CreateNsqdNode(4447, 4448, "C:\\Users\\lilili\\Desktop\\nsqd")
+	np.Register("127.0.0.1:4441")
+	np.Register("127.0.0.1:4443")
+	np.Register("127.0.0.1:4445")
+	np.Register("127.0.0.1:4447")
+}
+```
+
+- ##### 生产和消费
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/nsqio/go-nsq"
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	np := stormi.NewNsqdProxy("127.0.0.1:2131")
+	np.AddConsumeHandler("stormi-nsqd", "channel1", func(message *nsq.Message) error {
+		fmt.Println(string(message.Body))
+		return nil
+	})
+	for {
+		np.Publish("stormi-nsqd", []byte(uuid.NewString()))
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+```
+
