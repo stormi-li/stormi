@@ -10,6 +10,11 @@ import (
 )
 
 func main() {
+	caller()
+	select {}
+}
+
+func handler() {
 	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "OrderServer")
 	hd := cop.NewHandler()
 	hd.Handle(OrderServer.Func1, func(data []byte) any {
@@ -19,6 +24,10 @@ func main() {
 		dto.Code = 10
 		return dto
 	})
+}
+
+func caller() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "OrderServer")
 	caller := cop.NewCaller()
 	dto := OrderServer.OrderServerDto{}
 	for {
@@ -26,5 +35,4 @@ func main() {
 		fmt.Println(dto, "000000000000")
 		time.Sleep(1 * time.Second)
 	}
-
 }
