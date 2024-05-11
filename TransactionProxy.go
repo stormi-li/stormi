@@ -8,18 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	rollbackwaiting = "rollbackwaiting"
-	commitwaiting   = "commitwaiting"
-	rollback        = "rollback"
-	commit          = "commit"
-	noresponse      = "noresponse"
-	report          = "report"
-	finished        = "finished"
-	hi              = "hi"
-	stop            = "stop"
-)
-
 type TransactionProxy struct {
 	rp *RedisProxy
 }

@@ -8,7 +8,6 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
 	github.com/nsqio/go-nsq v1.1.0
-	golang.org/x/text v0.3.6
 	gorm.io/driver/mysql v1.5.6
 )
 

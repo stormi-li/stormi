@@ -165,15 +165,6 @@ func (np *NsqdProxy) Publish(topic string, msg []byte) {
 	}
 }
 
-func sliceRemoveByIndex(slice []any, index int) []any {
-	if index == len(slice)-1 {
-		slice = slice[:index]
-	} else {
-		slice = append(slice[:index], slice[index+1:]...)
-	}
-	return slice
-}
-
 type consumeHanlder struct {
 	topic   string
 	channel string
