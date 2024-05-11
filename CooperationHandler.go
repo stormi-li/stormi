@@ -49,10 +49,21 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 	var timeconsume time.Duration
 	mtd := strconv.Itoa(method)
 	cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+timeconsume.String())
+	fullcount := 0
 	go func() {
 		cophd.rp.Subscribe(pubsub1, 0, func(msg string) int {
 			if msg == hi {
-				cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+timeconsume.String())
+				ts := timeconsume * time.Duration((len(receivebuffer)/cophd.concurrency)+1)
+				if fullcount != 0 {
+					ts = timeconsume * time.Duration((cophd.buffersize/cophd.concurrency)+1)
+					fullcount--
+				}
+				cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+ts.String())
+			}
+			if msg == full {
+				ts := timeconsume * time.Duration((len(receivebuffer)/cophd.concurrency)+1)
+				cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+ts.String())
+				fullcount = 3
 			}
 			return 0
 		})
@@ -63,7 +74,10 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 			err := json.Unmarshal([]byte(msg), &copdto)
 			if err == nil {
 				if len(receivebuffer) == cophd.buffersize {
-					cophd.rp.Notify(copdto.CallerChannel, full)
+					cophd.rp.Notify(channelname, full)
+					copdto.Data = nil
+					j, _ := json.Marshal(copdto)
+					cophd.rp.Notify(copdto.CallerChannel, string(j))
 					return 0
 				}
 				receivebuffer <- copdto
@@ -104,7 +118,7 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 				if timeconsume == 0 {
 					timeconsume = tc
 				} else {
-					timeconsume += (tc - timeconsume) / time.Duration(cophd.concurrency)
+					timeconsume = tc
 				}
 			}
 		}()

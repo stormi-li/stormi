@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,8 @@ type CooperationCaller struct {
 	slots          chan int
 	handlermapmap  map[int]map[string]time.Duration
 	handlermaplist map[int][]string
+	failcount      int
+	successcount   int
 }
 
 type reciveBufferStruct struct {
@@ -65,12 +68,14 @@ func (copcl *CooperationCaller) initHanderMapMap() {
 					if len(parts) == 3 {
 						mtd, _ := strconv.Atoi(parts[1])
 						d, err := time.ParseDuration(parts[2])
+						concurrentmaplock.Lock()
 						if err == nil {
 							if copcl.handlermapmap[mtd] == nil {
 								copcl.handlermapmap[mtd] = make(map[string]time.Duration)
 							}
 							copcl.handlermapmap[mtd][parts[0]] = d
 						}
+						concurrentmaplock.Unlock()
 					}
 				}
 				return 0
@@ -80,9 +85,6 @@ func (copcl *CooperationCaller) initHanderMapMap() {
 		go func() {
 			copcl.rp.Subscribe(pubsub2, 0, func(msg string) int {
 				copdto := cooperationDto{}
-				if msg == full {
-					copcl.receivebuffer[copdto.Slot].data <- copdto.Data
-				}
 				json.Unmarshal([]byte(msg), &copdto)
 				if copcl.receivebuffer[copdto.Slot].uuid == copdto.CallerUUID {
 					copcl.receivebuffer[copdto.Slot].data <- copdto.Data
@@ -142,7 +144,18 @@ func (copcl *CooperationCaller) choose(method int) string {
 }
 
 func (copcl *CooperationCaller) Call(method int, send, receive any) {
-	hid := copcl.choose(method)
+
+	var hid string
+	for i := 0; i < 10; i++ {
+		concurrentmaplock.Lock()
+		hid = copcl.choose(method)
+		concurrentmaplock.Unlock()
+		if hid != "" {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+
 	slot := <-copcl.slots
 	copcl.receivebuffer[slot].uuid = uuid.NewString()
 	if len(copcl.receivebuffer[slot].data) == 1 {
@@ -160,7 +173,9 @@ func (copcl *CooperationCaller) Call(method int, send, receive any) {
 	if hid != "" {
 		data, _ := json.Marshal(copdto)
 		copcl.rp.Notify(hid, string(data))
+		concurrentmaplock.Lock()
 		t := time.NewTicker(3*time.Second + copcl.handlermapmap[method][hid])
+		concurrentmaplock.Unlock()
 		select {
 		case <-t.C:
 		case receivedate = <-copcl.receivebuffer[slot].data:
@@ -168,8 +183,29 @@ func (copcl *CooperationCaller) Call(method int, send, receive any) {
 	}
 	json.Unmarshal(receivedate, receive)
 	if receivedate == nil {
-		copcl.removeOneInHandlerMapList(method, hid)
+		copcl.failcount++
+		if copcl.failcount == 10 {
+			concurrentmaplock.Lock()
+			copcl.removeOneInHandlerMapList(method, hid)
+			concurrentmaplock.Unlock()
+			copcl.failcount = 0
+		}
+		time.Sleep(time.Second * time.Duration(copcl.failcount))
+	} else if copcl.failcount != 0 {
+		concurrentcountlock.Lock()
+		if copcl.failcount != 0 {
+			if copcl.successcount == 20 {
+				copcl.failcount--
+				copcl.successcount = 0
+			} else {
+				copcl.successcount++
+			}
+		}
+		concurrentcountlock.Unlock()
 	}
 	copcl.receivebuffer[slot].uuid = ""
 	copcl.slots <- slot
 }
+
+var concurrentmaplock sync.Mutex
+var concurrentcountlock sync.Mutex

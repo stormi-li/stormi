@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/stormi-li/stormi"
 	OrderServer "github.com/stormi-li/stormi/coprotocol/OrderServer"
@@ -11,8 +10,10 @@ import (
 
 func main() {
 	// handler()
-	caller()
 
+	for i := 0; i < 13; i++ {
+		go caller1()
+	}
 	select {}
 }
 
@@ -28,14 +29,13 @@ func handler() {
 	})
 }
 
-func caller() {
-	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "OrderServer")
-	caller := cop.NewCaller()
+var cop = stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "OrderServer")
+var caller = cop.NewCaller()
 
+func caller1() {
 	for {
 		dto := OrderServer.OrderServerDto{}
 		caller.Call(OrderServer.Func1, OrderServer.OrderServerDto{Code: 1, Message: "hi"}, &dto)
 		fmt.Println(dto)
-		time.Sleep(1 * time.Second)
 	}
 }
