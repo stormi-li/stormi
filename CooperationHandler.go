@@ -48,6 +48,7 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 	pubsub2 := cophd.rp.GetPubSub(cophdid)
 	var timeconsume time.Duration
 	mtd := strconv.Itoa(method)
+	cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+timeconsume.String())
 	go func() {
 		cophd.rp.Subscribe(pubsub1, 0, func(msg string) int {
 			if msg == hi {
@@ -81,9 +82,9 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 	}()
 	for i := 0; i < cophd.concurrency; i++ {
 		go func() {
-			t := Utils.NewTimer()
 			for {
 				copdto := <-receivebuffer
+				t := Utils.NewTimer()
 				res := handler(copdto.Data)
 				if res == nil {
 					continue
@@ -99,7 +100,7 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 						sendbuffer <- copdto
 					}
 				}
-				tc := t.StampAndReset()
+				tc := t.Stamp()
 				if timeconsume == 0 {
 					timeconsume = tc
 				} else {

@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +19,6 @@ type CooperationCaller struct {
 	slots          chan int
 	handlermapmap  map[int]map[string]time.Duration
 	handlermaplist map[int][]string
-	handlercount   map[int]int
 }
 
 type reciveBufferStruct struct {
@@ -95,40 +93,34 @@ func (copcl *CooperationCaller) initHanderMapMap() {
 	}
 }
 
-func (copcl *CooperationCaller) initHandlerMapListAndCount(method int) {
+func (copcl *CooperationCaller) initHandlerMapList(method int) {
 	if copcl.handlermaplist == nil {
 		copcl.handlermaplist = make(map[int][]string)
 	}
-	if copcl.handlercount[method] == 0 {
+	if len(copcl.handlermaplist[method]) == 0 {
 		l := []string{}
 		for uuid := range copcl.handlermapmap[method] {
 			l = append(l, uuid)
 		}
-		handlermaplistlock.Lock()
 		if copcl.handlermaplist[method] == nil {
 			copcl.handlermaplist[method] = []string{}
 		}
 		copcl.handlermaplist[method] = l
-		if copcl.handlercount == nil {
-			copcl.handlercount = make(map[int]int)
-		}
-		copcl.handlercount[method] = len(l)
-		handlermaplistlock.Unlock()
 	}
 }
 
-var handlermaplistlock sync.Mutex
-
-func (copcl *CooperationCaller) removeOneInHandlerMapListAndCount(method int, uuid string) {
+func (copcl *CooperationCaller) removeOneInHandlerMapList(method int, uuid string) {
 	if uuid == "" {
 		return
 	}
 	for index, u := range copcl.handlermaplist[method] {
+		delete(copcl.handlermapmap[method], uuid)
 		if u == uuid {
-			handlermaplistlock.Lock()
-			copcl.handlermaplist[method][index] = ""
-			copcl.handlercount[method]--
-			handlermaplistlock.Unlock()
+			if index == len(copcl.handlermaplist[method])-1 {
+				copcl.handlermaplist[method] = copcl.handlermaplist[method][:index]
+			} else {
+				copcl.handlermaplist[method] = append(copcl.handlermaplist[method][:index], copcl.handlermaplist[method][index+1:]...)
+			}
 			break
 		}
 	}
@@ -136,12 +128,12 @@ func (copcl *CooperationCaller) removeOneInHandlerMapListAndCount(method int, uu
 
 func (copcl *CooperationCaller) choose(method int) string {
 	copcl.initHanderMapMap()
-	copcl.initHandlerMapListAndCount(method)
+	copcl.initHandlerMapList(method)
 	for {
-		if copcl.handlercount[method] == 0 {
+		if len(copcl.handlermaplist[method]) == 0 {
 			return ""
 		} else {
-			index := rand.Intn(copcl.handlercount[method])
+			index := rand.Intn(len(copcl.handlermaplist[method]))
 			if copcl.handlermaplist[method][index] != "" {
 				return copcl.handlermaplist[method][index]
 			}
@@ -176,7 +168,7 @@ func (copcl *CooperationCaller) Call(method int, send, receive any) {
 	}
 	json.Unmarshal(receivedate, receive)
 	if receivedate == nil {
-		copcl.removeOneInHandlerMapListAndCount(method, hid)
+		copcl.removeOneInHandlerMapList(method, hid)
 	}
 	copcl.receivebuffer[slot].uuid = ""
 	copcl.slots <- slot

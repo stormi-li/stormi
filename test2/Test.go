@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	// handler()
-	caller()
+	handler()
+	// caller()
 
 	select {}
 }
