@@ -10,6 +10,7 @@ const (
 	finished        = "finished"
 	hi              = "hi"
 	stop            = "stop"
+	full            = "full"
 )
 
 const (

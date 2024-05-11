@@ -10,7 +10,6 @@ import (
 
 type CooperationHandler struct {
 	coprotocolId string
-	uuid         string
 	concurrency  int
 	buffersize   int
 	rp           *RedisProxy
@@ -19,7 +18,6 @@ type CooperationHandler struct {
 func (cop *CooperationProxy) NewHandler() *CooperationHandler {
 	cophd := CooperationHandler{}
 	cophd.coprotocolId = cop.uuid
-	cophd.uuid = uuid.NewString()
 	cophd.concurrency = 10
 	cophd.buffersize = 1000
 	cophd.rp = cop.cp.rp
@@ -46,13 +44,14 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 	sendbuffer := make(chan cooperationDto, 100)
 	channelname := cophd.coprotocolId
 	pubsub1 := cophd.rp.GetPubSub(channelname)
-	pubsub2 := cophd.rp.GetPubSub(cophd.uuid)
+	cophdid := uuid.NewString()
+	pubsub2 := cophd.rp.GetPubSub(cophdid)
 	var timeconsume time.Duration
 	mtd := strconv.Itoa(method)
 	go func() {
 		cophd.rp.Subscribe(pubsub1, 0, func(msg string) int {
 			if msg == hi {
-				cophd.rp.Notify(channelname, cophd.uuid+"@"+mtd+"@"+timeconsume.String())
+				cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+timeconsume.String())
 			}
 			return 0
 		})
@@ -61,9 +60,9 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 		cophd.rp.Subscribe(pubsub2, 0, func(msg string) int {
 			copdto := cooperationDto{}
 			err := json.Unmarshal([]byte(msg), &copdto)
-			if err != nil {
+			if err == nil {
 				if len(receivebuffer) == cophd.buffersize {
-					cophd.rp.Notify(copdto.CallerChannel, "full")
+					cophd.rp.Notify(copdto.CallerChannel, full)
 					return 0
 				}
 				receivebuffer <- copdto
@@ -82,10 +81,13 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 	}()
 	for i := 0; i < cophd.concurrency; i++ {
 		go func() {
+			t := Utils.NewTimer()
 			for {
-				t := Utils.NewTimer()
 				copdto := <-receivebuffer
 				res := handler(copdto.Data)
+				if res == nil {
+					continue
+				}
 				d, ok := res.([]byte)
 				if ok {
 					copdto.Data = d

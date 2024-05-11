@@ -82,6 +82,9 @@ func (copcl *CooperationCaller) initHanderMapMap() {
 		go func() {
 			copcl.rp.Subscribe(pubsub2, 0, func(msg string) int {
 				copdto := cooperationDto{}
+				if msg == full {
+					copcl.receivebuffer[copdto.Slot].data <- copdto.Data
+				}
 				json.Unmarshal([]byte(msg), &copdto)
 				if copcl.receivebuffer[copdto.Slot].uuid == copdto.CallerUUID {
 					copcl.receivebuffer[copdto.Slot].data <- copdto.Data
@@ -93,13 +96,22 @@ func (copcl *CooperationCaller) initHanderMapMap() {
 }
 
 func (copcl *CooperationCaller) initHandlerMapListAndCount(method int) {
+	if copcl.handlermaplist == nil {
+		copcl.handlermaplist = make(map[int][]string)
+	}
 	if copcl.handlercount[method] == 0 {
 		l := []string{}
 		for uuid := range copcl.handlermapmap[method] {
 			l = append(l, uuid)
 		}
 		handlermaplistlock.Lock()
+		if copcl.handlermaplist[method] == nil {
+			copcl.handlermaplist[method] = []string{}
+		}
 		copcl.handlermaplist[method] = l
+		if copcl.handlercount == nil {
+			copcl.handlercount = make(map[int]int)
+		}
 		copcl.handlercount[method] = len(l)
 		handlermaplistlock.Unlock()
 	}
@@ -137,7 +149,8 @@ func (copcl *CooperationCaller) choose(method int) string {
 	}
 }
 
-func (copcl *CooperationCaller) Call(method int, send any, receive any) {
+func (copcl *CooperationCaller) Call(method int, send, receive any) {
+	hid := copcl.choose(method)
 	slot := <-copcl.slots
 	copcl.receivebuffer[slot].uuid = uuid.NewString()
 	if len(copcl.receivebuffer[slot].data) == 1 {
@@ -151,11 +164,9 @@ func (copcl *CooperationCaller) Call(method int, send any, receive any) {
 		copdto.CallerChannel = copcl.uuid
 		copdto.Slot = slot
 	}
-	hid := copcl.choose(method)
 	var receivedate []byte
 	if hid != "" {
-		data := []byte{}
-		json.Unmarshal(data, &copdto)
+		data, _ := json.Marshal(copdto)
 		copcl.rp.Notify(hid, string(data))
 		t := time.NewTicker(3*time.Second + copcl.handlermapmap[method][hid])
 		select {
