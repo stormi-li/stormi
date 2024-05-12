@@ -805,7 +805,6 @@ func handler2() {
 		return user
 	})
 }
-
 ```
 
 ##### 编辑UserServer协作协议客户端代码
