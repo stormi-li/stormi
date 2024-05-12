@@ -8,6 +8,8 @@
 
 ### 1.安装
 
+哔哩哔哩视频教程： https://www.bilibili.com/video/BV1Ft421c7uh/?share_source=copy_web&vd_source=1e94ae838a6ff53b4df3b5dbe78ba199
+
 ##### 安装stormi框架
 
 ```
