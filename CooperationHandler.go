@@ -13,6 +13,7 @@ type CooperationHandler struct {
 	concurrency  int
 	buffersize   int
 	rp           *RedisProxy
+	name         string
 }
 
 func (cop *CooperationProxy) NewHandler() *CooperationHandler {
@@ -21,6 +22,7 @@ func (cop *CooperationProxy) NewHandler() *CooperationHandler {
 	cophd.concurrency = 10
 	cophd.buffersize = 1000
 	cophd.rp = cop.cp.rp
+	cophd.name = cop.cooperationName
 	return &cophd
 }
 
@@ -41,41 +43,32 @@ type cooperationDto struct {
 }
 
 func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) any) {
+	StormiFmtPrintln(green, cophd.rp.addrs[0], "协作处理程序启动, 协议名:", cophd.name, "请求码:", method)
 	receivebuffer := make(chan cooperationDto, cophd.buffersize)
-	sendbuffer := make(chan cooperationDto, 100)
 	channelname := cophd.coprotocolId
-	pubsub1 := cophd.rp.GetPubSub(channelname)
 	cophdid := uuid.NewString()
-	pubsub2 := cophd.rp.GetPubSub(cophdid)
+	pubsub := cophd.rp.GetPubSub(cophdid)
 	var timeconsume time.Duration
 	mtd := strconv.Itoa(method)
-	cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+timeconsume.String())
-	fullcount := 0
 	go func() {
-		cophd.rp.Subscribe(pubsub1, 0, func(msg string) int {
-			if msg == hi {
-				ts := timeconsume * time.Duration((len(receivebuffer)/cophd.concurrency)+1)
-				if fullcount != 0 {
-					ts = timeconsume * time.Duration((cophd.buffersize/cophd.concurrency)+1)
-					fullcount--
-				}
-				cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+ts.String())
-			}
-			if msg == full {
-				ts := timeconsume * time.Duration((len(receivebuffer)/cophd.concurrency)+1)
-				cophd.rp.Notify(channelname, cophdid+"@"+mtd+"@"+ts.String())
-				fullcount = 3
-			}
-			return 0
-		})
+		for {
+			cophd.rp.Notify(channelname, cophdid+"@"+mtd)
+			time.Sleep(1 * time.Second)
+		}
 	}()
 	go func() {
-		cophd.rp.Subscribe(pubsub2, 0, func(msg string) int {
+		cophd.rp.Subscribe(pubsub, 0, func(msg string) int {
 			copdto := cooperationDto{}
 			err := json.Unmarshal([]byte(msg), &copdto)
 			if err == nil {
 				if len(receivebuffer) == cophd.buffersize {
-					cophd.rp.Notify(channelname, full)
+					copdto.Data = nil
+					j, _ := json.Marshal(copdto)
+					cophd.rp.Notify(copdto.CallerChannel, string(j))
+					return 0
+				}
+
+				if copdto.TimeRemaining < timeconsume*time.Duration((len(receivebuffer)/cophd.concurrency)+1)+100*time.Millisecond {
 					copdto.Data = nil
 					j, _ := json.Marshal(copdto)
 					cophd.rp.Notify(copdto.CallerChannel, string(j))
@@ -85,15 +78,6 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 			}
 			return 0
 		})
-	}()
-	go func() {
-		for {
-			copdto := <-sendbuffer
-			b, err := json.Marshal(copdto)
-			if err == nil {
-				cophd.rp.Notify(copdto.CallerChannel, string(b))
-			}
-		}
 	}()
 	for i := 0; i < cophd.concurrency; i++ {
 		go func() {
@@ -107,12 +91,14 @@ func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) an
 				d, ok := res.([]byte)
 				if ok {
 					copdto.Data = d
-					sendbuffer <- copdto
 				} else {
 					d, err := json.Marshal(res)
 					if err == nil {
 						copdto.Data = d
-						sendbuffer <- copdto
+						b, err := json.Marshal(copdto)
+						if err == nil {
+							cophd.rp.Notify(copdto.CallerChannel, string(b))
+						}
 					}
 				}
 				tc := t.Stamp()

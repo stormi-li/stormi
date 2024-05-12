@@ -12,16 +12,16 @@ import (
 )
 
 type CooperationCaller struct {
-	rp             *RedisProxy
-	coprotocolId   string
-	uuid           string
-	concurrency    int
-	receivebuffer  []reciveBufferStruct
-	slots          chan int
-	handlermapmap  map[int]map[string]time.Duration
-	handlermaplist map[int][]string
-	failcount      int
-	successcount   int
+	rp                *RedisProxy
+	coprotocolId      string
+	uuid              string
+	concurrency       int
+	receivebuffer     []reciveBufferStruct
+	slots             chan int
+	handlermapmap     map[int]map[string]time.Time
+	handlermaplist    map[int][]string
+	timeout           time.Duration
+	concurrentmaplock sync.Mutex
 }
 
 type reciveBufferStruct struct {
@@ -35,7 +35,8 @@ func (cop *CooperationProxy) NewCaller() *CooperationCaller {
 	copcl.concurrency = 100
 	copcl.uuid = uuid.NewString()
 	copcl.coprotocolId = cop.uuid
-	copcl.handlermapmap = make(map[int]map[string]time.Duration)
+	copcl.timeout = 5 * time.Second
+	copcl.handlermapmap = make(map[int]map[string]time.Time)
 	return &copcl
 }
 
@@ -43,7 +44,11 @@ func (copcl *CooperationCaller) SetConcurrency(concurrency int) {
 	copcl.concurrency = concurrency
 }
 
-func (copcl *CooperationCaller) initHanderMapMap() {
+func (copcl *CooperationCaller) SetTimeout(timeout time.Duration) {
+	copcl.timeout = timeout
+}
+
+func (copcl *CooperationCaller) init() {
 	if copcl.receivebuffer == nil {
 		copcl.receivebuffer = make([]reciveBufferStruct, copcl.concurrency)
 		for index := range copcl.receivebuffer {
@@ -55,31 +60,46 @@ func (copcl *CooperationCaller) initHanderMapMap() {
 			copcl.slots <- i
 		}
 		pubsub1 := copcl.rp.GetPubSub(copcl.coprotocolId)
+		cancel := make(chan struct{}, 1)
 		go func() {
+			copcl.rp.Notify(copcl.coprotocolId, hi)
 			for {
-				copcl.rp.Notify(copcl.coprotocolId, hi)
-				time.Sleep(10 * time.Second)
+				t := time.NewTicker(3 * time.Second)
+				select {
+				case <-t.C:
+					copcl.rp.Notify(copcl.coprotocolId, hi)
+				case <-cancel:
+					t.Stop()
+				}
 			}
 		}()
 		go func() {
 			copcl.rp.Subscribe(pubsub1, 0, func(msg string) int {
+				if msg == hi {
+					cancel <- struct{}{}
+				}
 				if msg != hi {
 					parts := strings.Split(msg, "@")
-					if len(parts) == 3 {
+					if len(parts) == 2 {
 						mtd, _ := strconv.Atoi(parts[1])
-						d, err := time.ParseDuration(parts[2])
-						concurrentmaplock.Lock()
-						if err == nil {
-							if copcl.handlermapmap[mtd] == nil {
-								copcl.handlermapmap[mtd] = make(map[string]time.Duration)
-							}
-							copcl.handlermapmap[mtd][parts[0]] = d
+						if len(copcl.handlermaplist[mtd]) == 0 {
+							copcl.refreshHandlerMapList()
 						}
-						concurrentmaplock.Unlock()
+						if copcl.handlermapmap[mtd] == nil {
+							copcl.handlermapmap[mtd] = make(map[string]time.Time)
+						}
+						copcl.handlermapmap[mtd][parts[0]] = time.Now()
 					}
+
 				}
 				return 0
 			})
+		}()
+		go func() {
+			for {
+				copcl.refreshHandlerMapList()
+				time.Sleep(1 * time.Second)
+			}
 		}()
 		pubsub2 := copcl.rp.GetPubSub(copcl.uuid)
 		go func() {
@@ -95,65 +115,78 @@ func (copcl *CooperationCaller) initHanderMapMap() {
 	}
 }
 
-func (copcl *CooperationCaller) initHandlerMapList(method int) {
-	if copcl.handlermaplist == nil {
-		copcl.handlermaplist = make(map[int][]string)
-	}
-	if len(copcl.handlermaplist[method]) == 0 {
-		l := []string{}
-		for uuid := range copcl.handlermapmap[method] {
-			l = append(l, uuid)
+func (copcl *CooperationCaller) refreshHandlerMapList() {
+	for method := range copcl.handlermapmap {
+		if copcl.handlermaplist == nil {
+			copcl.handlermaplist = make(map[int][]string)
 		}
 		if copcl.handlermaplist[method] == nil {
 			copcl.handlermaplist[method] = []string{}
 		}
-		copcl.handlermaplist[method] = l
+		for key, t := range copcl.handlermapmap[method] {
+			if time.Since(t) > 3*time.Second {
+				for index, v := range copcl.handlermaplist[method] {
+					if key == v {
+						copcl.concurrentmaplock.Lock()
+						copcl.removeOneInHandlerMapList(method, index)
+						copcl.concurrentmaplock.Unlock()
+						break
+					}
+				}
+			}
+			if time.Since(t) < 1500*time.Millisecond {
+				var exist bool
+				for _, v := range copcl.handlermaplist[method] {
+					if key == v {
+						exist = true
+						break
+					}
+				}
+				if !exist {
+					copcl.concurrentmaplock.Lock()
+					copcl.handlermaplist[method] = append(copcl.handlermaplist[method], key)
+					copcl.concurrentmaplock.Unlock()
+				}
+			}
+		}
 	}
 }
 
-func (copcl *CooperationCaller) removeOneInHandlerMapList(method int, uuid string) {
-	if uuid == "" {
-		return
-	}
-	for index, u := range copcl.handlermaplist[method] {
-		delete(copcl.handlermapmap[method], uuid)
-		if u == uuid {
-			if index == len(copcl.handlermaplist[method])-1 {
-				copcl.handlermaplist[method] = copcl.handlermaplist[method][:index]
-			} else {
-				copcl.handlermaplist[method] = append(copcl.handlermaplist[method][:index], copcl.handlermaplist[method][index+1:]...)
-			}
-			break
-		}
+func (copcl *CooperationCaller) removeOneInHandlerMapList(method int, index int) {
+	if index == len(copcl.handlermaplist[method])-1 {
+		copcl.handlermaplist[method] = copcl.handlermaplist[method][:index]
+	} else {
+		copcl.handlermaplist[method] = append(copcl.handlermaplist[method][:index], copcl.handlermaplist[method][index+1:]...)
 	}
 }
 
 func (copcl *CooperationCaller) choose(method int) string {
-	copcl.initHanderMapMap()
-	copcl.initHandlerMapList(method)
-	for {
-		if len(copcl.handlermaplist[method]) == 0 {
-			return ""
-		} else {
-			index := rand.Intn(len(copcl.handlermaplist[method]))
-			if copcl.handlermaplist[method][index] != "" {
-				return copcl.handlermaplist[method][index]
-			}
-		}
+	copcl.init()
+
+	copcl.concurrentmaplock.Lock()
+	if len(copcl.handlermaplist[method]) == 0 {
+		copcl.rp.Notify(copcl.coprotocolId, hi)
+		copcl.concurrentmaplock.Unlock()
+		return ""
+	} else {
+		index := rand.Intn(len(copcl.handlermaplist[method]))
+		copcl.concurrentmaplock.Unlock()
+		return copcl.handlermaplist[method][index]
 	}
 }
 
 func (copcl *CooperationCaller) Call(method int, send, receive any) {
-
-	var hid string
-	for i := 0; i < 10; i++ {
-		concurrentmaplock.Lock()
-		hid = copcl.choose(method)
-		concurrentmaplock.Unlock()
-		if hid != "" {
+	handlerChannelId := copcl.choose(method)
+	retrynum := int(copcl.timeout) / int(time.Second)
+	for i := 0; i < retrynum; i++ {
+		if handlerChannelId != "" {
 			break
 		}
 		time.Sleep(1 * time.Second)
+		handlerChannelId = copcl.choose(method)
+		if i == retrynum-1 {
+			return
+		}
 	}
 
 	slot := <-copcl.slots
@@ -163,49 +196,53 @@ func (copcl *CooperationCaller) Call(method int, send, receive any) {
 	}
 	senddata, err := json.Marshal(send)
 	copdto := cooperationDto{}
-	if err == nil {
+	now := time.Now()
+	if err != nil {
+		return
+	}
+	var receivedate []byte
+
+	t := time.NewTicker(copcl.timeout)
+
+	finish := false
+	go func() {
+		<-t.C
+		finish = true
+	}()
+	for {
+		if finish {
+			break
+		}
+
+		timeremaining := copcl.timeout - time.Since(now)
+		if timeremaining <= 0 {
+			return
+		}
 		copdto.Data = senddata
 		copdto.CallerUUID = copcl.receivebuffer[slot].uuid
 		copdto.CallerChannel = copcl.uuid
 		copdto.Slot = slot
-	}
-	var receivedate []byte
-	if hid != "" {
-		data, _ := json.Marshal(copdto)
-		copcl.rp.Notify(hid, string(data))
-		concurrentmaplock.Lock()
-		t := time.NewTicker(3*time.Second + copcl.handlermapmap[method][hid])
-		concurrentmaplock.Unlock()
+		copdto.TimeRemaining = timeremaining
+		tt := time.NewTicker(timeremaining)
+		data, err := json.Marshal(copdto)
+		if err != nil {
+			return
+		}
+		copcl.rp.Notify(handlerChannelId, string(data))
 		select {
-		case <-t.C:
+		case <-tt.C:
 		case receivedate = <-copcl.receivebuffer[slot].data:
+			tt.Stop()
+		}
+		if receivedate == nil {
+			continue
+		} else {
+			break
 		}
 	}
+
 	json.Unmarshal(receivedate, receive)
-	if receivedate == nil {
-		copcl.failcount++
-		if copcl.failcount == 10 {
-			concurrentmaplock.Lock()
-			copcl.removeOneInHandlerMapList(method, hid)
-			concurrentmaplock.Unlock()
-			copcl.failcount = 0
-		}
-		time.Sleep(time.Second * time.Duration(copcl.failcount))
-	} else if copcl.failcount != 0 {
-		concurrentcountlock.Lock()
-		if copcl.failcount != 0 {
-			if copcl.successcount == 20 {
-				copcl.failcount--
-				copcl.successcount = 0
-			} else {
-				copcl.successcount++
-			}
-		}
-		concurrentcountlock.Unlock()
-	}
+
 	copcl.receivebuffer[slot].uuid = ""
 	copcl.slots <- slot
 }
-
-var concurrentmaplock sync.Mutex
-var concurrentcountlock sync.Mutex

@@ -9,6 +9,7 @@ const (
 	report          = "report"
 	finished        = "finished"
 	hi              = "hi"
+	hiresponse      = "hiresponse"
 	stop            = "stop"
 	full            = "full"
 )

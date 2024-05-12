@@ -199,6 +199,26 @@ func (rp *RedisProxy) Wait(channel string, timeout time.Duration) string {
 	}
 }
 
+func (rp *RedisProxy) WaitAfterSend(channel string, send string, timeout time.Duration) string {
+	var pubsub *redis.PubSub
+	if rp.isCluster {
+		pubsub = rp.rdsClusterClient.Subscribe(context.Background(), channel)
+	} else {
+		pubsub = rp.rdsClient.Subscribe(context.Background(), channel)
+	}
+	rp.Notify(channel, send)
+	defer pubsub.Close()
+	ch := pubsub.Channel()
+	timer := time.NewTicker(timeout)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return ""
+	case msg := <-ch:
+		return msg.Payload
+	}
+}
+
 func (rp *RedisProxy) CycleWait(channel string, timeout time.Duration, reset bool, handler func(msg *string) error) {
 	t := timeout
 	var pubsub *redis.PubSub

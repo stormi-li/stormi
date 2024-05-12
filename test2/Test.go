@@ -25,7 +25,7 @@ func handler() {
 		dto := OrderServer.OrderServerDto{}
 		json.Unmarshal(data, &dto)
 		fmt.Println(dto)
-		time.Sleep(2 * time.Second)
+		// time.Sleep(2 * time.Second)
 		dto.Code = 11
 		return dto
 	})

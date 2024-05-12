@@ -1,58 +1,43 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"math/rand"
-	"strconv"
+	"time"
 
 	"github.com/stormi-li/stormi"
+	OrderServer "github.com/stormi-li/stormi/coprotocol/OrderServer"
 )
 
 func main() {
-	tp := stormi.NewTransactionProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
-	ids := tp.NewDTxIds(3)
-	// server1(ids[0])
-	server2(ids[1])
-	server3(ids[2])
-	tp.DCommit(ids, func(statement [][2]string) {
-		fmt.Println("分布式事务失败")
-		fmt.Println(statement)
-	})
+	// handler()
+
+	for i := 0; i < 1; i++ {
+		go caller1()
+	}
 	select {}
 }
 
-func server1(id string) {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
-	mp.ConnectByNodeId(33061)
-	ct := ConfigTable{}
-	ct.Name = "nsqd"
-	ct.Addr = "127.0.0.1:" + strconv.Itoa(rand.Intn(10000))
-	dtx := mp.NewDTx(id)
-	dtx.DB().Create(&ct)
-	dtx.Rollback()
-}
-func server2(id string) {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
-	mp.ConnectByNodeId(33061)
-	ct := ConfigTable{}
-	ct.Name = "nsqd"
-	ct.Addr = "127.0.0.1:" + strconv.Itoa(rand.Intn(10000))
-	dtx := mp.NewDTx(id)
-	dtx.DB().Create(&ct)
-	dtx.Commit()
-}
-func server3(id string) {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
-	mp.ConnectByNodeId(33061)
-	ct := ConfigTable{}
-	ct.Name = "nsqd"
-	ct.Addr = "127.0.0.1:" + strconv.Itoa(rand.Intn(10000))
-	dtx := mp.NewDTx(id)
-	dtx.DB().Create(&ct)
-	dtx.Commit()
+func handler() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "OrderServer")
+	hd := cop.NewHandler()
+	hd.Handle(OrderServer.Func1, func(data []byte) any {
+		dto := OrderServer.OrderServerDto{}
+		json.Unmarshal(data, &dto)
+		fmt.Println(dto)
+		dto.Code = 10
+		return dto
+	})
 }
 
-type ConfigTable struct {
-	Name string
-	Addr string
+var cop = stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "OrderServer")
+var caller = cop.NewCaller()
+
+func caller1() {
+	for {
+		dto := OrderServer.OrderServerDto{}
+		caller.Call(OrderServer.Func1, OrderServer.OrderServerDto{Code: 1, Message: "hi"}, &dto)
+		fmt.Println(dto)
+		time.Sleep(1 * time.Second)
+	}
 }
