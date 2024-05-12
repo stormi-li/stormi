@@ -12,9 +12,9 @@ var cop = stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy(
 var caller = cop.NewCaller()
 
 func main() {
-	caller.SetTimeout(20 * time.Second)
+	caller.SetTimeout(30 * time.Second)
 
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 30; i++ {
 		go caller1()
 	}
 	select {}
@@ -25,5 +25,6 @@ func caller1() {
 		dto := OrderServer.OrderServerDto{}
 		caller.Call(OrderServer.Func1, OrderServer.OrderServerDto{Code: 1, Message: "hi"}, &dto)
 		fmt.Println(dto)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
