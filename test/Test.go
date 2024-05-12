@@ -12,9 +12,9 @@ var cop = stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy(
 var caller = cop.NewCaller()
 
 func main() {
-	caller.SetTimeout(13 * time.Second)
+	caller.SetTimeout(20 * time.Second)
 
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 20; i++ {
 		go caller1()
 	}
 	select {}
