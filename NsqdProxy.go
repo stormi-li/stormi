@@ -105,7 +105,9 @@ func (np *NsqdProxy) autoConnect() {
 							np.lock1.Lock()
 							np.producers = append(np.producers, c)
 							np.lock1.Unlock()
+							np.lock2.Lock()
 							np.availableAddrs = append(np.availableAddrs, addr)
+							np.lock2.Unlock()
 							StormiFmtPrintln(yellow, np.cp.rdsAddr, "已成功连接到的nsqd节点:", addr)
 							np.consReconnect <- struct{}{}
 							changed = true
@@ -169,6 +171,7 @@ func (np *NsqdProxy) Publish(topic string, msg []byte) {
 			break
 		} else {
 			np.lock1.Lock()
+			np.lock2.Lock()
 			np.producers[index].Stop()
 			StormiFmtPrintln(magenta, np.cp.rdsAddr, "nsqd节点:"+np.availableAddrs[index], err, "已将其移出nsqd连接池, 等待自动重连")
 			if index == len(np.producers)-1 {
@@ -178,6 +181,7 @@ func (np *NsqdProxy) Publish(topic string, msg []byte) {
 				np.producers = append(np.producers[:index], np.producers[index+1:]...)
 				np.availableAddrs = append(np.availableAddrs[:index], np.availableAddrs[index+1:]...)
 			}
+			np.lock2.Unlock()
 			np.lock1.Unlock()
 			np.consReconnect <- struct{}{}
 		}
