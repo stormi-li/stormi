@@ -258,7 +258,7 @@ func (copcl *CooperationCaller) Call(method int, send, receive any) {
 			break
 		}
 	}
-
+	t.Stop()
 	json.Unmarshal(receivedate, receive)
 
 	copcl.receivebuffer[slot].uuid = ""
