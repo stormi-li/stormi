@@ -37,6 +37,7 @@ type cooperationDto struct {
 	CallerChannel string
 	Slot          int
 	CallerUUID    string
+	TimeRemaining time.Duration
 }
 
 func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) any) {
