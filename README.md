@@ -858,10 +858,7 @@ func main() {
 	fmt.Println(t.Stamp())
 	time.Sleep(100 * time.Millisecond)
 	fmt.Println(t.StampAndReset())
-	for i := 0; i < 200; i++ {
-		c := i * i
-		fmt.Println(c)
-	}
+	time.Sleep(100 * time.Millisecond)
 	fmt.Println(t.Stamp())
 }
 ```
