@@ -3,6 +3,7 @@ package stormi
 import (
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nsqio/go-nsq"
@@ -18,6 +19,8 @@ type NsqdProxy struct {
 	sdautocon      chan struct{}
 	sdautocons     chan struct{}
 	stoped         bool
+	lock1          sync.Mutex
+	lock2          sync.Mutex
 }
 
 func NewNsqdProxy(cp *ConfigProxy) *NsqdProxy {
@@ -89,6 +92,7 @@ func (np *NsqdProxy) autoConnect() {
 				for _, addr := range np.addrs {
 					if np.isVailable(addr) {
 						add := true
+						np.lock2.Lock()
 						for _, a := range np.availableAddrs {
 							if a == addr {
 								add = false
@@ -98,26 +102,33 @@ func (np *NsqdProxy) autoConnect() {
 						if add {
 							c, _ := nsq.NewProducer(addr, nsq.NewConfig())
 							c.SetLoggerLevel(nsq.LogLevelError)
+							np.lock1.Lock()
 							np.producers = append(np.producers, c)
+							np.lock1.Unlock()
 							np.availableAddrs = append(np.availableAddrs, addr)
 							StormiFmtPrintln(yellow, np.cp.rdsAddr, "已成功连接到的nsqd节点:", addr)
 							np.consReconnect <- struct{}{}
 							changed = true
 						}
+						np.lock2.Unlock()
 					}
 				}
 				if changed {
+					np.lock2.Lock()
 					if len(np.availableAddrs) == 0 {
 						StormiFmtPrintln(magenta, np.cp.rdsAddr, "当前配置集nsqd节点均不可用")
 					}
+					np.lock2.Unlock()
 				}
 			}
 		}, np.proReconnect, np.sdautocon)
+		np.lock1.Lock()
 		if len(np.producers) != 0 {
 			for _, p := range np.producers {
 				p.Stop()
 			}
 		}
+		np.lock1.Unlock()
 		np.sdautocons <- struct{}{}
 	}()
 }
@@ -141,16 +152,23 @@ func (np *NsqdProxy) Publish(topic string, msg []byte) {
 			StormiFmtPrintln(magenta, np.cp.rdsAddr, "nsqd代理已关闭, 消息发送失败")
 			return
 		}
+		np.lock1.Lock()
 		if len(np.producers) == 0 {
+			np.lock1.Unlock()
 			StormiFmtPrintln(magenta, np.cp.rdsAddr, "当前无可用nsqd节点, 等待一秒后重试")
 			time.Sleep(1 * time.Second)
 			continue
+		} else {
+			np.lock1.Unlock()
 		}
+		np.lock1.Lock()
 		index := rand.Intn(len(np.producers))
 		err := np.producers[index].Publish(topic, msg)
+		np.lock1.Unlock()
 		if err == nil {
 			break
 		} else {
+			np.lock1.Lock()
 			np.producers[index].Stop()
 			StormiFmtPrintln(magenta, np.cp.rdsAddr, "nsqd节点:"+np.availableAddrs[index], err, "已将其移出nsqd连接池, 等待自动重连")
 			if index == len(np.producers)-1 {
@@ -160,6 +178,7 @@ func (np *NsqdProxy) Publish(topic string, msg []byte) {
 				np.producers = append(np.producers[:index], np.producers[index+1:]...)
 				np.availableAddrs = append(np.availableAddrs[:index], np.availableAddrs[index+1:]...)
 			}
+			np.lock1.Unlock()
 			np.consReconnect <- struct{}{}
 		}
 	}
@@ -180,6 +199,7 @@ func (np *NsqdProxy) AddConsumeHandler(topic string, channel string, handler fun
 	h.handler = handler
 	consumerHandlers = append(consumerHandlers, h)
 	config := nsq.NewConfig()
+	np.lock2.Lock()
 	for _, node := range np.availableAddrs {
 		c, err := nsq.NewConsumer(topic, channel, config)
 		if err != nil {
@@ -192,6 +212,7 @@ func (np *NsqdProxy) AddConsumeHandler(topic string, channel string, handler fun
 			StormiFmtPrintln(magenta, np.cp.rdsAddr, "nsqd节点:"+node, err)
 		}
 	}
+	np.lock2.Unlock()
 }
 
 func (np *NsqdProxy) autoConsume() {
@@ -210,6 +231,7 @@ func (np *NsqdProxy) autoConsume() {
 				}
 			}
 			consmap = make(map[string][]*nsq.Consumer)
+			np.lock2.Lock()
 			for _, addr := range np.availableAddrs {
 				for _, ch := range consumerHandlers {
 					c, err := nsq.NewConsumer(ch.topic, ch.channel, nsq.NewConfig())
@@ -222,6 +244,7 @@ func (np *NsqdProxy) autoConsume() {
 					consmap[addr] = append(consmap[addr], c)
 				}
 			}
+			np.lock2.Unlock()
 		}
 	}()
 	go func() {

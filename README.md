@@ -543,8 +543,8 @@ import (
 )
 
 func main() {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
-	mp.Register(33061, "192.168.37.132:3306", "root", "123456", "stormi")
+    mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
+	mp.Register(33061, "192.168.37.139:3306", "root", "123456", "stormi")
 }
 ```
 
@@ -558,7 +558,7 @@ import (
 )
 
 func main() {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
+    mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
 	mp.ConnectByNodeId(33061)
 }
 ```
@@ -573,7 +573,7 @@ import (
 )
 
 func main() {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
+    mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
 	mp.ConnectByNodeId(33061)
 	ct := ConfigTable{}
 	mp.DB().AutoMigrate(&ct)
@@ -651,7 +651,6 @@ type ConfigTable struct {
 	Name string
 	Addr string
 }
-
 ```
 
 
@@ -668,7 +667,7 @@ import (
 )
 
 func main() {
-	np := stormi.NewNsqdProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
+    np := stormi.NewNsqdProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
 	stormi.NodeBuilder.CreateNsqdNode(4441, 4442, "C:\\Users\\lilili\\Desktop\\nsqd")
 	stormi.NodeBuilder.CreateNsqdNode(4443, 4444, "C:\\Users\\lilili\\Desktop\\nsqd")
 	stormi.NodeBuilder.CreateNsqdNode(4445, 4446, "C:\\Users\\lilili\\Desktop\\nsqd")
@@ -695,7 +694,7 @@ import (
 )
 
 func main() {
-	np := stormi.NewNsqdProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
+    np := stormi.NewNsqdProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
 	np.AddConsumeHandler("stormi-nsqd", "channel1", func(message *nsq.Message) error {
 		fmt.Println(string(message.Body))
 		return nil
