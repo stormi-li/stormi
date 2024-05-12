@@ -711,6 +711,139 @@ func main() {
 }
 ```
 
+### 8.cooperation代理的使用
+
+- ##### 创建UserServer协作协议
+
+```go
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "UserServer")
+	cop.CreateCoprotocol()
+}
+```
+
+- ##### 编辑UserServer协作协议
+
+```go
+package UserServer
+
+// 协议码
+const (
+	Insert = iota
+	Update
+)
+
+// 数据传输结构体
+type UserServerDto struct {
+	Id       int
+	UserName string
+}
+```
+
+- ##### 将编辑后的UserServer协作协议上传
+
+```go
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "UserServer")
+	cop.PushCoprotocol()
+}
+```
+
+- ##### 编辑UserServer协作协议的服务端代码
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/stormi-li/stormi"
+	UserServer "github.com/stormi-li/stormi/coprotocol/UserServer"
+)
+
+func main() {
+	handler1()
+	handler2()
+	select {}
+}
+
+func handler1() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "UserServer")
+	cophd := cop.NewHandler()
+	cophd.SetBufferSize(10)
+	cophd.SetConcurrency(2)
+	cophd.Handle(UserServer.Insert, func(data []byte) any {
+		user := UserServer.UserServerDto{}
+		json.Unmarshal(data, &user)
+		user.Id = 1
+		user.UserName = "handler1"
+		time.Sleep(100 * time.Millisecond)
+		return user
+	})
+}
+func handler2() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "UserServer")
+	cophd := cop.NewHandler()
+	cophd.SetBufferSize(10)
+	cophd.SetConcurrency(2)
+	cophd.Handle(UserServer.Insert, func(data []byte) any {
+		user := UserServer.UserServerDto{}
+		json.Unmarshal(data, &user)
+		user.Id = 2
+		user.UserName = "handler2"
+		time.Sleep(200 * time.Millisecond)
+		return user
+	})
+}
+
+```
+
+- ##### 编辑UserServer协作协议客户端代码
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/stormi-li/stormi"
+	UserServer "github.com/stormi-li/stormi/coprotocol/UserServer"
+)
+
+func main() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "UserServer")
+	caller := cop.NewCaller()
+	caller.SetTimeout(10 * time.Second)
+	caller.SetConcurrency(100)
+	for i := 0; i < 50; i++ {
+		go func() {
+			for {
+				dto := UserServer.UserServerDto{}
+				caller.Call(UserServer.Insert, UserServer.UserServerDto{Id: 1, UserName: "stormi"}, &dto)
+				fmt.Println(dto)
+				time.Sleep(1 * time.Second)
+			}
+		}()
+	}
+	select {}
+}
+
+```
+
 ### 9.其它小工具的使用
 
 - ##### Timer计时器的使用

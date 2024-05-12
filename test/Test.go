@@ -1,30 +1,44 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"time"
 
 	"github.com/stormi-li/stormi"
-	OrderServer "github.com/stormi-li/stormi/coprotocol/OrderServer"
+	UserServer "github.com/stormi-li/stormi/coprotocol/UserServer"
 )
 
-var cop = stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "OrderServer")
-var caller = cop.NewCaller()
-
 func main() {
-	caller.SetTimeout(30 * time.Second)
-
-	for i := 0; i < 30; i++ {
-		go caller1()
-	}
+	handler1()
+	handler2()
 	select {}
 }
 
-func caller1() {
-	for {
-		dto := OrderServer.OrderServerDto{}
-		caller.Call(OrderServer.Func1, OrderServer.OrderServerDto{Code: 1, Message: "hi"}, &dto)
-		fmt.Println(dto)
+func handler1() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "UserServer")
+	cophd := cop.NewHandler()
+	cophd.SetBufferSize(10)
+	cophd.SetConcurrency(2)
+	cophd.Handle(UserServer.Insert, func(data []byte) any {
+		user := UserServer.UserServerDto{}
+		json.Unmarshal(data, &user)
+		user.Id = 1
+		user.UserName = "handler1"
 		time.Sleep(100 * time.Millisecond)
-	}
+		return user
+	})
+}
+func handler2() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "UserServer")
+	cophd := cop.NewHandler()
+	cophd.SetBufferSize(10)
+	cophd.SetConcurrency(2)
+	cophd.Handle(UserServer.Insert, func(data []byte) any {
+		user := UserServer.UserServerDto{}
+		json.Unmarshal(data, &user)
+		user.Id = 2
+		user.UserName = "handler2"
+		time.Sleep(200 * time.Millisecond)
+		return user
+	})
 }
