@@ -11,6 +11,7 @@ import (
 
 func main() {
 	handler()
+	handler2()
 	// caller()
 	// handler2()
 	select {}
@@ -25,7 +26,21 @@ func handler() {
 		dto := OrderServer.OrderServerDto{}
 		json.Unmarshal(data, &dto)
 		fmt.Println(dto)
-		// time.Sleep(2 * time.Second)
+		time.Sleep(2 * time.Second)
+		dto.Code = 22
+		return dto
+	})
+}
+func handler2() {
+	cop := stormi.NewCooperationProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")), "OrderServer")
+	hd := cop.NewHandler()
+	hd.SetBufferSize(10)
+	hd.SetConcurrency(2)
+	hd.Handle(OrderServer.Func1, func(data []byte) any {
+		dto := OrderServer.OrderServerDto{}
+		json.Unmarshal(data, &dto)
+		fmt.Println(dto)
+		time.Sleep(1 * time.Second)
 		dto.Code = 11
 		return dto
 	})

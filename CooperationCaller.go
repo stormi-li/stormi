@@ -61,24 +61,8 @@ func (copcl *CooperationCaller) init() {
 			copcl.slots <- i
 		}
 		pubsub1 := copcl.rp.GetPubSub(copcl.coprotocolId)
-		cancel := make(chan struct{}, 1)
-		go func() {
-			copcl.rp.Notify(copcl.coprotocolId, hi)
-			for {
-				t := time.NewTicker(3 * time.Second)
-				select {
-				case <-t.C:
-					copcl.rp.Notify(copcl.coprotocolId, hi)
-				case <-cancel:
-					t.Stop()
-				}
-			}
-		}()
 		go func() {
 			copcl.rp.Subscribe(pubsub1, 0, func(msg string) int {
-				if msg == hi {
-					cancel <- struct{}{}
-				}
 				if msg != hi {
 					parts := strings.Split(msg, "@")
 					if len(parts) == 2 {
@@ -184,10 +168,9 @@ func (copcl *CooperationCaller) choose(method int) string {
 		return copcl.handlermaplist[method][index]
 	}
 }
-
-func (copcl *CooperationCaller) Call(method int, send, receive any) {
+func (copcl *CooperationCaller) chooseByTime(method int, timeremain time.Duration) string {
 	handlerChannelId := copcl.choose(method)
-	retrynum := int(copcl.timeout) / int(time.Second)
+	retrynum := int(timeremain) / int(time.Second)
 	for i := 0; i < retrynum; i++ {
 		if handlerChannelId != "" {
 			break
@@ -195,10 +178,18 @@ func (copcl *CooperationCaller) Call(method int, send, receive any) {
 		time.Sleep(1 * time.Second)
 		handlerChannelId = copcl.choose(method)
 		if i == retrynum-1 {
-			return
+			return ""
 		}
 	}
+	return handlerChannelId
+}
 
+func (copcl *CooperationCaller) Call(method int, send, receive any) {
+	now := time.Now()
+	handlerChannelId := copcl.chooseByTime(method, copcl.timeout)
+	if handlerChannelId == "" {
+		return
+	}
 	slot := <-copcl.slots
 	copcl.receivebuffer[slot].uuid = uuid.NewString()
 	if len(copcl.receivebuffer[slot].data) == 1 {
@@ -206,7 +197,7 @@ func (copcl *CooperationCaller) Call(method int, send, receive any) {
 	}
 	senddata, err := json.Marshal(send)
 	copdto := cooperationDto{}
-	now := time.Now()
+
 	if err != nil {
 		return
 	}
@@ -245,7 +236,11 @@ func (copcl *CooperationCaller) Call(method int, send, receive any) {
 			tt.Stop()
 		}
 		if receivedate == nil {
-			continue
+			time.Sleep(1 * time.Second)
+			handlerChannelId = copcl.chooseByTime(method, copcl.timeout-time.Since(now))
+			if handlerChannelId == "" {
+				break
+			}
 		} else {
 			break
 		}
