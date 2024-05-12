@@ -3,7 +3,6 @@ package stormi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -163,7 +162,6 @@ func (cp ConfigProxy) Refreshs(cset any) {
 }
 
 func (cp ConfigProxy) upload(c Config, s string) {
-	fmt.Println(c.ToJsonStr())
 	var ok int64
 	if c.Name != "" {
 		if cp.rp.isCluster {

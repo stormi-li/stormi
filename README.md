@@ -506,7 +506,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewServerProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
+    cp := stormi.NewServerProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
 	cp.ConfigProxy().AddConfigSyncNotificationHandler(func(configProxy stormi.ConfigProxy, msg string) {})
 	cp.Register("stormiserver", "127.0.0.1:8888", 3, 3*time.Second)
 	select {}
@@ -522,7 +522,7 @@ import (
 )
 
 func main() {
-	cp := stormi.NewServerProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
+    cp := stormi.NewServerProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
 	cp.Discover("stormiserver", 3*time.Second, func(addr string) error {
 		fmt.Println(addr)
 		return nil
