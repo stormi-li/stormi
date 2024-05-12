@@ -100,7 +100,7 @@ func (sp *ServerProxy) Stop() {
 	sp.sdreg <- struct{}{}
 }
 
-func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr string) error) {
+func (sp *ServerProxy) Discover(name string, wait time.Duration, handler func(addr string) error) {
 	go func() {
 		if sp.listenserverstarted {
 			return
@@ -111,7 +111,7 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 			if res != "" && sp.discoverstoped {
 				StormiFmtPrintln(yellow, sp.rdsAddr, "检测到", name, "服务心跳, 地址:", res, ", 重启发现服务")
 				sp.discoverstoped = false
-				sp.Discover(name, t, handler)
+				sp.Discover(name, wait, handler)
 			}
 		}
 	}()
@@ -130,7 +130,7 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 	pubsub := sp.cp.rp.GetPubSub(pubName)
 	sp.cp.rp.Notify(pubName+"server", getIp())
 	var heart string
-	res := sp.cp.rp.Subscribe(pubsub, t, func(msg string) int {
+	res := sp.cp.rp.Subscribe(pubsub, wait, func(msg string) int {
 		if msg != "" {
 			heart = msg
 			return 1
@@ -140,7 +140,7 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 	if res != 1 {
 		sp.cp.ConfigSet[name][c.GetKey()].Ignore = true
 		sp.cp.Update(*sp.cp.ConfigSet[name][c.GetKey()])
-		sp.Discover(name, t, handler)
+		sp.Discover(name, wait, handler)
 		return
 	}
 
@@ -148,22 +148,22 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 	go func() {
 		duration, err := time.ParseDuration(heart)
 		if err != nil {
-			sp.Discover(name, t, handler)
+			sp.Discover(name, wait, handler)
 			return
 		}
 		if err = handler(c.Addr); err != nil {
 			StormiFmtPrintln(magenta, sp.rdsAddr, "服务处理错误: ", err.Error(), "重新拉取新服务")
-			sp.Discover(name, t, handler)
+			sp.Discover(name, wait, handler)
 			return
 		}
 		for {
-			h := sp.cp.rp.Wait(c.Name+c.Addr, duration)
+			h := sp.cp.rp.Wait(c.Name+c.Addr, duration*2)
 			if h == "" {
 				StormiFmtPrintln(magenta, sp.rdsAddr, "服务断联: ", c.ToJsonStr(), "尝试重新拉取新服务")
 				break
 			}
 		}
-		sp.Discover(name, t, handler)
+		sp.Discover(name, wait, handler)
 	}()
 }
 
