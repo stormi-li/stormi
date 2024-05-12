@@ -157,7 +157,7 @@ func (sp *ServerProxy) Discover(name string, t time.Duration, handler func(addr 
 			return
 		}
 		for {
-			h := sp.cp.rp.Wait(c.Name+c.Addr, duration*2)
+			h := sp.cp.rp.Wait(c.Name+c.Addr, duration)
 			if h == "" {
 				StormiFmtPrintln(magenta, sp.rdsAddr, "服务断联: ", c.ToJsonStr(), "尝试重新拉取新服务")
 				break
