@@ -621,7 +621,7 @@ func main() {
 }
 
 func server1(id string) {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213")))
 	mp.ConnectByNodeId(33061)
 	ct := ConfigTable{}
 	ct.Name = "nsqd"
@@ -631,7 +631,7 @@ func server1(id string) {
 	dtx.Rollback()
 }
 func server2(id string) {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213")))
 	mp.ConnectByNodeId(33061)
 	ct := ConfigTable{}
 	ct.Name = "nsqd"
@@ -641,7 +641,7 @@ func server2(id string) {
 	dtx.Commit()
 }
 func server3(id string) {
-	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+	mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:213")))
 	mp.ConnectByNodeId(33061)
 	ct := ConfigTable{}
 	ct.Name = "nsqd"
@@ -655,6 +655,7 @@ type ConfigTable struct {
 	Name string
 	Addr string
 }
+
 ```
 
 

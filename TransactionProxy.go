@@ -91,19 +91,31 @@ func (tp TransactionProxy) DCommit(dtxids []string, handler func(statement [][2]
 	iscommit := false
 	allcommit := true
 	tp.rp.Notify(uuid, report)
+	t := time.NewTicker(3 * time.Second)
+	cancel := make(chan struct{}, 1)
 	go func() {
-		res := tp.rp.Subscribe(pubsub, 3*time.Second, func(msg string) int {
+		select {
+		case <-t.C:
+			tp.rp.Notify(uuid, rollback)
+		case <-cancel:
+		}
+	}()
+	go func() {
+		res := tp.rp.Subscribe(pubsub, 4*time.Second, func(msg string) int {
 			parts := strings.Split(msg, "@")
 			if len(parts) == 2 {
 				index, _ := strconv.Atoi(parts[1])
 				if parts[0] == rollbackwaiting {
+					cancel <- struct{}{}
 					statement[index][0] = DTxStatment.RollbackWaiting
 					tp.rp.Notify(uuid, rollback)
+
 				}
 				if parts[0] == commitwaiting {
 					cmtcount++
 					statement[index][0] = DTxStatment.CommitWaiting
 					if cmtcount == num {
+						cancel <- struct{}{}
 						tp.rp.Notify(uuid, commit)
 						iscommit = true
 					}
