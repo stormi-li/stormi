@@ -428,7 +428,7 @@ package main
 import "github.com/stormi-li/stormi"
 
 func main() {
-	stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")
+    stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
     select{}
 }
 -----------------------------------------------------------
@@ -437,7 +437,7 @@ package main
 import "github.com/stormi-li/stormi"
 
 func main() {
-	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")
+    cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
 	cp.NotifySync("同步信息")
 }
 ```
