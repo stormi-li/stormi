@@ -193,7 +193,7 @@ func (f fileOpt) createCoprotocol(name string) {
 	f.CreateFileNX(filename)
 	f.AppendToFile(filename, "package "+name)
 	f.AppendToFile(filename, "\n")
-	f.AppendToFile(filename, "//方法")
+	f.AppendToFile(filename, "//协议码")
 	f.AppendToFile(filename, "const (")
 	f.AppendToFile(filename, "	Func1 = iota")
 	f.AppendToFile(filename, "	Func2")

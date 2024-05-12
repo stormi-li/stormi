@@ -43,7 +43,7 @@ type cooperationDto struct {
 }
 
 func (cophd *CooperationHandler) Handle(method int, handler func(data []byte) any) {
-	StormiFmtPrintln(green, cophd.rp.addrs[0], "协作处理程序启动, 协议名:", cophd.name, "请求码:", method)
+	StormiFmtPrintln(green, cophd.rp.addrs[0], "协作处理程序启动, 协议名:", cophd.name, "协议码:", method)
 	receivebuffer := make(chan cooperationDto, cophd.buffersize)
 	channelname := cophd.coprotocolId
 	cophdid := uuid.NewString()

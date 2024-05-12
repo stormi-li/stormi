@@ -12,16 +12,17 @@ import (
 )
 
 type CooperationCaller struct {
-	rp                *RedisProxy
-	coprotocolId      string
-	uuid              string
-	concurrency       int
-	receivebuffer     []reciveBufferStruct
-	slots             chan int
-	handlermapmap     map[int]map[string]time.Time
-	handlermaplist    map[int][]string
-	timeout           time.Duration
-	concurrentmaplock sync.Mutex
+	rp                    *RedisProxy
+	coprotocolId          string
+	uuid                  string
+	concurrency           int
+	receivebuffer         []reciveBufferStruct
+	slots                 chan int
+	handlermapmap         map[int]map[string]time.Time
+	handlermaplist        map[int][]string
+	timeout               time.Duration
+	concurrentmaplistlock sync.Mutex
+	concurrentmapmaplock  sync.Mutex
 }
 
 type reciveBufferStruct struct {
@@ -82,13 +83,19 @@ func (copcl *CooperationCaller) init() {
 					parts := strings.Split(msg, "@")
 					if len(parts) == 2 {
 						mtd, _ := strconv.Atoi(parts[1])
+						copcl.concurrentmaplistlock.Lock()
 						if len(copcl.handlermaplist[mtd]) == 0 {
+							copcl.concurrentmaplistlock.Unlock()
 							copcl.refreshHandlerMapList()
+						} else {
+							copcl.concurrentmaplistlock.Unlock()
 						}
+						copcl.concurrentmapmaplock.Lock()
 						if copcl.handlermapmap[mtd] == nil {
 							copcl.handlermapmap[mtd] = make(map[string]time.Time)
 						}
 						copcl.handlermapmap[mtd][parts[0]] = time.Now()
+						copcl.concurrentmapmaplock.Unlock()
 					}
 
 				}
@@ -125,11 +132,14 @@ func (copcl *CooperationCaller) refreshHandlerMapList() {
 		}
 		for key, t := range copcl.handlermapmap[method] {
 			if time.Since(t) > 3*time.Second {
+				copcl.concurrentmapmaplock.Lock()
+				delete(copcl.handlermapmap[method], key)
+				copcl.concurrentmapmaplock.Unlock()
 				for index, v := range copcl.handlermaplist[method] {
 					if key == v {
-						copcl.concurrentmaplock.Lock()
+						copcl.concurrentmaplistlock.Lock()
 						copcl.removeOneInHandlerMapList(method, index)
-						copcl.concurrentmaplock.Unlock()
+						copcl.concurrentmaplistlock.Unlock()
 						break
 					}
 				}
@@ -143,9 +153,9 @@ func (copcl *CooperationCaller) refreshHandlerMapList() {
 					}
 				}
 				if !exist {
-					copcl.concurrentmaplock.Lock()
+					copcl.concurrentmaplistlock.Lock()
 					copcl.handlermaplist[method] = append(copcl.handlermaplist[method], key)
-					copcl.concurrentmaplock.Unlock()
+					copcl.concurrentmaplistlock.Unlock()
 				}
 			}
 		}
@@ -163,14 +173,14 @@ func (copcl *CooperationCaller) removeOneInHandlerMapList(method int, index int)
 func (copcl *CooperationCaller) choose(method int) string {
 	copcl.init()
 
-	copcl.concurrentmaplock.Lock()
+	copcl.concurrentmaplistlock.Lock()
 	if len(copcl.handlermaplist[method]) == 0 {
 		copcl.rp.Notify(copcl.coprotocolId, hi)
-		copcl.concurrentmaplock.Unlock()
+		copcl.concurrentmaplistlock.Unlock()
 		return ""
 	} else {
 		index := rand.Intn(len(copcl.handlermaplist[method]))
-		copcl.concurrentmaplock.Unlock()
+		copcl.concurrentmaplistlock.Unlock()
 		return copcl.handlermaplist[method][index]
 	}
 }
