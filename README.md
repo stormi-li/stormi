@@ -774,7 +774,7 @@ func main() {
 	np.Register("127.0.0.1:4447")
 }
 --------------------------------------
-//60个n's'q
+//启动60个nsqd节点
 package main
 
 import (
