@@ -1,8 +1,10 @@
+
+
 # stormi-go框架（spring-java时代的终结者）
 
 ## 简介
 
-​		stormi框架所原创的代理方案集成了类似spring的容器方案，springboot的自动配置方案和springcloud的微服务方案的功能，并且更容易使用，功能更强大，可扩展性更强。stormi原生集成了服务注册与发现，分布式锁，和分布式事务等功能，还提供了一套进程间（跨主机）通信的解决方案，让微服务的开发真正实现跨主机联动，使得多人同时开发同一个功能成为现实，基于该方案本框架实现了cooperation代理用于替代传统的服务注册与发现模式，并且该代理在灵活性、可用性和易用性上优于当前所有的其它方案。该框架已经给各位实现了redis代理，config代理，server代理，mysql代理，transaction代理，nsqd代理和cooperation代理，其中最强大的是redis代理和config代理，这两个代理是最底层的代理，所有的代理都依赖这两个代理，其他开发人员可以使用这两个代理开发自己的代理，同时我希望各位开发人员如果觉得该框架好用的话可以多多开发和开源自己的代理，让我们一起搭建比spring生态更加强大的stormi生态。
+​		stormi框架所原创的代理方案集成了类似spring的容器方案，springboot的自动配置方案和springcloud的微服务方案的功能，并且更容易使用，功能更强大，可扩展性更强。stormi原生集成了服务注册与发现，分布式锁，和分布式事务等功能，还提供了一套进程间（跨主机）通信的解决方案，让微服务的开发真正实现跨主机联动，使得多人同时开发同一个功能成为现实，基于该方案本框架实现了cooperation代理用于替代传统的服务注册与发现模式，并且该代理在灵活性、可用性和易用性上优于当前所有的其它方案。该框架已经给各位实现了redis代理，config代理，server代理，mysql代理，transaction代理，nsqd代理和cooperation代理，其中最强大的是redis代理和config代理，这两个代理是最底层的代理，所有的代理都依赖这两个代理，其他开发人员可以使用这两个代理开发自己的代理，同时我希望各位开发人员如果觉得该框架好用的话可以多多开发和开源自己的代理，让我们一起搭建比spring生态更加强大的stormi生态。github链接：https://github.com/stormi-li/stormi
 
 ## 使用教程
 
@@ -76,6 +78,15 @@ import "github.com/stormi-li/stormi"
 func main() {
 	rp := stormi.NewRedisProxy("127.0.0.1:2131")
 	rp.RedisClusterNodesInfo()
+}
+----------------------------------
+package main
+
+import "github.com/stormi-li/stormi"
+
+func main() {
+	rp := stormi.NewRedisProxy("127.0.0.1:213")
+	rp.RedisSingleNodeInfo()
 }
 ```
 
@@ -180,7 +191,7 @@ import (
 
 func main() {
 	rp := stormi.NewRedisProxy("127.0.0.1:2131")
-	rp.Notify("stormi-channel", "stormi-notify")
+	rp.Notify("stormi-channel", "hello world!!!")
 }
 ```
 
@@ -283,6 +294,49 @@ func main() {
 	<-exit
 }
 ```
+
+##### 快速搭建聊天室
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	rp := stormi.NewRedisProxy("127.0.0.1:2131")
+	pubsub := rp.GetPubSub("stormi-chat")
+	rp.Subscribe(pubsub, 0, func(msg string) int {
+		fmt.Println(msg)
+		return 0
+	})
+}
+----------------------------------
+package main
+
+import (
+	"bufio"
+	"os"
+	"strings"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	rp := stormi.NewRedisProxy("127.0.0.1:2131")
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		text, _ := reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		rp.Notify("stormi-chat", text)
+	}
+}
+```
+
+
 
 ### 3.config代理的使用
 
@@ -718,6 +772,23 @@ func main() {
 	np.Register("127.0.0.1:4443")
 	np.Register("127.0.0.1:4445")
 	np.Register("127.0.0.1:4447")
+}
+--------------------------------------
+//60个n's'q
+package main
+
+import (
+	"strconv"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	np := stormi.NewNsqdProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
+	for i := 0; i < 60; i++ {
+		stormi.NodeBuilder.CreateNsqdNode(4440+2*i, 4440+2*i+1, "C:\\Users\\lilili\\Desktop\\nsqd")
+		np.Register("127.0.0.1:" + strconv.Itoa(4440+2*i))
+	}
 }
 ```
 

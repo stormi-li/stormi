@@ -105,9 +105,7 @@ func (np *NsqdProxy) autoConnect() {
 							np.lock1.Lock()
 							np.producers = append(np.producers, c)
 							np.lock1.Unlock()
-							np.lock2.Lock()
 							np.availableAddrs = append(np.availableAddrs, addr)
-							np.lock2.Unlock()
 							StormiFmtPrintln(yellow, np.cp.rdsAddr, "已成功连接到的nsqd节点:", addr)
 							np.consReconnect <- struct{}{}
 							changed = true
