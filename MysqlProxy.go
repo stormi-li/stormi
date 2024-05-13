@@ -54,7 +54,6 @@ func (mp *MysqlProxy) ConnectByNodeId(nodeId int) []Config {
 	} else {
 		mp.ConnectByConfig(cs[0])
 	}
-
 	return cs
 }
 
