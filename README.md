@@ -563,6 +563,46 @@ func main() {
     mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
 	mp.ConnectByNodeId(33061)
 }
+-----------------------------------------------------------------
+//动态修改数据库连接
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
+	mp := stormi.NewMysqlProxy(cp)
+	mp.ConnectByNodeId(33061)
+	cp.AddConfigHandler("mysql", func(cmap map[string]*stormi.Config) {
+		for _, c := range cmap {
+			if c.NodeId == 33061 {
+				mp.ConnectByConfig(*c)
+				break
+			}
+		}
+	})
+    select {}
+}
+-----------------------------------------------------------------
+package main
+
+import (
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	cp := stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131"))
+	cmap := cp.Pull("mysql")
+	for _, c := range cmap {
+		c.NodeId = 33061
+		c.Addr = "192.168.37.139:3306"
+		cp.Update(c)
+		cp.NotifySync("33061节点数据库更新, 请重新连接数据库")
+		break
+	}
+}
 ```
 
 ##### 创建ConfigTable，并插入数据
