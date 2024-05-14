@@ -39,7 +39,7 @@ package main
 import "github.com/stormi-li/stormi"
 
 func main() {
-	stormi.NodeBuilder.CreateRedisNode(2131, stormi.NodeType.RedisStandalone, "127.0.0.1", "C:\\Users\\lilili\\Desktop\\stormistudy\\redisstandalone")
+	stormi.NodeBuilder.CreateRedisNode(213, stormi.NodeType.RedisStandalone, "127.0.0.1", "C:\\Users\\lilili\\Desktop\\stormistudy\\redisstandalone")
 }
 ```
 
