@@ -1,24 +1,22 @@
-
-
-# stormi-go框架（spring-java时代的终结者）
+# stormi-go 框架（Spring-Java 时代的终结者）
 
 ## 简介
 
-​		stormi框架所原创的代理方案集成了类似spring的容器方案，springboot的自动配置方案和springcloud的微服务方案的功能，并且更容易使用，功能更强大，可扩展性更强。stormi原生集成了服务注册与发现，分布式锁，和分布式事务等功能，还提供了一套进程间（跨主机）通信的解决方案，让微服务的开发真正实现跨主机联动，使得多人同时开发同一个功能成为现实，基于该方案本框架实现了cooperation代理用于替代传统的服务注册与发现模式，并且该代理在灵活性、可用性和易用性上优于当前所有的其它方案。该框架已经给各位实现了redis代理，config代理，server代理，mysql代理，transaction代理，nsqd代理和cooperation代理，其中最强大的是redis代理和config代理，这两个代理是最底层的代理，所有的代理都依赖这两个代理，其他开发人员可以使用这两个代理开发自己的代理，同时我希望各位开发人员如果觉得该框架好用的话可以多多开发和开源自己的代理，让我们一起搭建比spring生态更加强大的stormi生态。github链接：https://github.com/stormi-li/stormi
+stormi 框架所原创的代理方案集成了类似 Spring 的容器方案，Springboot 的自动配置方案和 Spring Cloud 的微服务方案的功能，并且更容易使用，功能更强大，可扩展性更强。stormi 原生集成了服务注册与发现，分布式锁，和分布式事务等功能，还提供了一套进程间（跨主机）通信的解决方案，让微服务的开发真正实现跨主机联动，使得多人同时开发同一个功能成为现实，基于该方案本框架实现了 Cooperation 代理用于替代传统的服务注册与发现模式，并且该代理在灵活性、可用性和易用性上优于当前所有的其它方案。该框架已经给各位实现了 Redis 代理，Config 代理，Server 代理，MySQL 代理，Transaction 代理，NSQD 代理和 Cooperation 代理，其中最强大的是 Redis 代理和 Config 代理，这两个代理是最底层的代理，所有的代理都依赖这两个代理，其他开发人员可以使用这两个代理开发自己的代理，同时我希望各位开发人员如果觉得该框架好用的话可以多多开发和开源自己的代理，让我们一起搭建比 Spring 生态更加强大的 stormi 生态。github 链接：https://github.com/stormi-li/stormi
 
 ## 使用教程
 
 哔哩哔哩视频教程： https://www.bilibili.com/video/BV1Ft421c7uh/?share_source=copy_web&vd_source=1e94ae838a6ff53b4df3b5dbe78ba199
 
-### 1.安装
+### 1. 安装
 
-##### 安装stormi框架
+##### 安装 stormi 框架
 
 ```
 go get -u github.com/stormi-li/stormi
 ```
 
-##### 安装redis-server,redis-cli,nsqd
+##### 安装 redis-server, redis-cli, nsqd
 
 ```go
 package main
@@ -30,10 +28,10 @@ func main() {
 }
 ```
 
-##### 启动redis单例，和redis集群
+##### 启动 redis 单例，和 redis 集群
 
 ```go
-//启动redis单例
+//启动 redis 单例
 package main
 
 import "github.com/stormi-li/stormi"
@@ -44,7 +42,7 @@ func main() {
 ```
 
 ```go
-//启动redis集群
+//启动 Redis 集群
 package main
 
 import "github.com/stormi-li/stormi"
@@ -55,7 +53,7 @@ func main() {
 ```
 
 ```go
-//启动redis集群节点并将其加入当redis集群当中
+//启动 Redis 集群节点并将其加入 Redis 集群当中
 package main
 
 import "github.com/stormi-li/stormi"
@@ -68,7 +66,7 @@ func main() {
 }
 ```
 
-##### 创建redis代理连接集群并且查看集群信息
+##### 创建 Redis 代理连接集群并且查看集群信息
 
 ```go
 package main
@@ -90,11 +88,9 @@ func main() {
 }
 ```
 
+### 2. Redis 代理的使用
 
-
-### 2.redis代理的使用
-
-##### 获取redisClient和redisClusterClient
+##### 获取 redisClient 和 redisClusterClient
 
 ```go
 package main
@@ -165,7 +161,7 @@ func main() {
 }
 ```
 
-##### Notify和Wait的使用
+##### Notify 和 Wait 的使用
 
 ```go
 package main
@@ -195,7 +191,7 @@ func main() {
 }
 ```
 
-##### CycleWait的使用
+##### CycleWait 的使用
 
 ```go
 package main
@@ -236,7 +232,7 @@ func main() {
 }
 ```
 
-##### Publish和Subscribe使用
+##### Publish 和 Subscribe 使用
 
 ```go
 package main
@@ -336,11 +332,9 @@ func main() {
 }
 ```
 
+### 3. Config 代理的使用
 
-
-### 3.config代理的使用
-
-##### 注册配置信息到redis配置集以及配置持久化
+##### 注册配置信息到 redis 配置集以及配置持久化
 
 ```go
 package main
@@ -456,7 +450,7 @@ func main() {
 }
 ```
 
-##### Sync同步配置
+##### Sync 同步配置
 
 ```go
 package main
@@ -474,7 +468,7 @@ func main() {
 }
 ```
 
-##### NotifySync通知同步配置
+##### NotifySync 通知同步配置
 
 ```go
 package main
@@ -496,7 +490,7 @@ func main() {
 }
 ```
 
-##### AddConfigHandler添加配置处理器
+##### AddConfigHandler 添加配置处理器
 
 ```go
 package main
@@ -517,7 +511,7 @@ func main() {
 }
 ```
 
-##### AddConfigSyncNotificationHandler添加配置同步消息处理器
+##### AddConfigSyncNotificationHandler 添加配置同步消息处理器
 
 ```go
 package main
@@ -548,7 +542,7 @@ func main() {
 }
 ```
 
-### 4.server代理的使用
+### 4. Server 代理的使用
 
 ##### 服务注册与发现
 
@@ -587,9 +581,9 @@ func main() {
 }
 ```
 
-### 5.mysql代理的使用
+### 5. MySQL 代理的使用
 
-##### 注册mysql配置信息
+##### 注册 MySQL 配置信息
 
 ```go
 package main
@@ -659,7 +653,7 @@ func main() {
 }
 ```
 
-##### 创建ConfigTable，并插入数据
+##### 创建 ConfigTable，并插入数据
 
 ```go
 package main
@@ -684,7 +678,7 @@ type ConfigTable struct {
 }
 ```
 
-### 6.transaction代理的使用
+### 6. Transaction 代理的使用
 
 ##### 使用分布式事务
 
@@ -749,11 +743,9 @@ type ConfigTable struct {
 }
 ```
 
+### 7. nsqd 代理的使用
 
-
-### 7.nsqd代理的使用
-
-##### 搭建nsqd集群
+##### 搭建 nsqd 集群
 
 ```go
 package main
@@ -774,7 +766,7 @@ func main() {
 	np.Register("127.0.0.1:4447")
 }
 --------------------------------------
-//启动60个nsqd节点
+//启动 60 个 nsqd 节点
 package main
 
 import (
@@ -819,9 +811,9 @@ func main() {
 }
 ```
 
-### 8.cooperation代理的使用
+### 8. Cooperation 代理的使用
 
-##### 创建UserServer协作协议
+##### 创建 UserServer 协作协议
 
 ```go
 package main
@@ -836,7 +828,7 @@ func main() {
 }
 ```
 
-##### 编辑UserServer协作协议
+##### 编辑 UserServer 协作协议
 
 ```go
 package UserServer
@@ -854,7 +846,7 @@ type UserServerDto struct {
 }
 ```
 
-##### 将编辑后的UserServer协作协议上传
+##### 将编辑后的 UserServer 协作协议上传
 
 ```go
 package main
@@ -869,7 +861,7 @@ func main() {
 }
 ```
 
-##### 编辑UserServer协作协议的服务端代码
+##### 编辑 UserServer 协作协议的服务端代码
 
 ```go
 package main
@@ -918,7 +910,7 @@ func handler2() {
 }
 ```
 
-##### 编辑UserServer协作协议客户端代码
+##### 编辑 UserServer 协作协议客户端代码
 
 ```go
 package main
@@ -952,7 +944,7 @@ func main() {
 
 ### 9.其它小工具的使用
 
-##### Timer计时器的使用
+##### Timer 计时器的使用
 
 ```go
 package main
@@ -975,7 +967,7 @@ func main() {
 }
 ```
 
-##### StormiChat聊天室的使用
+##### StormiChat 聊天室的使用
 
 ```go
 package main
@@ -1000,4 +992,3 @@ func main() {
 	sc.StartPub()
 }
 ```
-
