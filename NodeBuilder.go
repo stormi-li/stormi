@@ -65,20 +65,20 @@ func (nodeBuilder) CreateNsqdNode(tcpPort int, httpPort int, path string) {
 	time.Sleep(100 * time.Millisecond)
 }
 
-func (nodeBuilder) CreateRedisNode(port int, t int, ip string, path string) {
-	if t == NodeType.RedisCluster {
+func (nodeBuilder) CreateRedisNode(port int, nodeType int, ip string, path string) {
+	if nodeType == NodeType.RedisCluster {
 		path = path + "/clusternode" + strconv.Itoa(port)
-	} else if t == NodeType.RedisStandalone {
+	} else if nodeType == NodeType.RedisStandalone {
 		path = path + "/redisnode" + strconv.Itoa(port)
 	} else {
 		StormiFmtPrintln(magenta, noredis, "类型错误")
 		return
 	}
 
-	if t == NodeType.RedisStandalone {
+	if nodeType == NodeType.RedisStandalone {
 		NodeBuilder.createRedisNode(port, path)
 	}
-	if t == NodeType.RedisCluster {
+	if nodeType == NodeType.RedisCluster {
 		if ip == "" {
 			StormiFmtPrintln(magenta, noredis, "请设置redis集群节点ip")
 			return
