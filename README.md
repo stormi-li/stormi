@@ -594,7 +594,7 @@ import (
 
 func main() {
     mp := stormi.NewMysqlProxy(stormi.NewConfigProxy(stormi.NewRedisProxy("127.0.0.1:2131")))
-	mp.Register(33061, "192.168.37.139:3306", "root", "123456", "stormi")
+	mp.Register(33061, "127.0.0.1:3306", "root", "123456", "stormi")
 }
 ```
 
