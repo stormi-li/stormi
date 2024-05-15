@@ -1,6 +1,6 @@
-if "%1"=="upload" (
+@echo off
     git add .
-    git commit -m %2
+    git commit -m %1
     git push origin master
     exit
-)
+
