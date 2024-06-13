@@ -1,4 +1,4 @@
-# stormi-go 框架（Spring-Java 时代的终结者）
+# stormi-go 框架
 
 ## 简介
 
