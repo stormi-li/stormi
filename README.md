@@ -992,3 +992,133 @@ func main() {
 	sc.StartPub()
 }
 ```
+### 10.sync代理的使用
+
+##### 分布式读写锁的使用
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	syp := stormi.NewSyncProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+	l := syp.NewRWLock("myrwlock")
+
+	l.RLock()
+	fmt.Println("read")
+	time.Sleep(10 * time.Second)
+	l.RUnlock()
+}
+-----------------------------------------------------------
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	syp := stormi.NewSyncProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+
+	l := syp.NewRWLock("myrwlock")
+
+	l.WLock()
+	fmt.Println("write")
+	time.Sleep(5 * time.Second)
+	l.WUnlock()
+}
+```
+
+##### 分布式WaitGroup的使用
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	syp := stormi.NewSyncProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+	wg := syp.NewWaitGroup("waitgroup")
+	wg.Add(3)
+	wg.Wait()
+	fmt.Println("done")
+}
+-----------------------------------------------------------
+package main
+
+import "github.com/stormi-li/stormi"
+
+func main() {
+	syp := stormi.NewSyncProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+	wg := syp.NewWaitGroup("waitgroup")
+	wg.Done()
+}
+
+```
+
+##### 分布式条件变量的使用
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	syp := stormi.NewSyncProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+	cond := syp.NewCond("cond")
+	var wg sync.WaitGroup
+	for {
+		wg.Add(3)
+		go func() {
+			cond.Wait()
+			fmt.Println("wait1")
+			wg.Done()
+		}()
+		go func() {
+			cond.Wait()
+			fmt.Println("wait2")
+			wg.Done()
+		}()
+		go func() {
+			cond.Wait()
+			fmt.Println("wait3")
+			wg.Done()
+		}()
+		wg.Wait()
+	}
+}
+-----------------------------------------------------------
+package main
+
+import (
+	"time"
+
+	"github.com/stormi-li/stormi"
+)
+
+func main() {
+	syp := stormi.NewSyncProxy(stormi.NewRedisProxy("127.0.0.1:213"))
+	cond := syp.NewCond("cond")
+	cond.Singal()
+	time.Sleep(2 * time.Second)
+	cond.Broadcast()
+}
+```
+

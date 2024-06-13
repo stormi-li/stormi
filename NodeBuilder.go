@@ -114,6 +114,9 @@ func (nodeBuilder) createRedisNode(port int, path string) {
 	FileOpt.AppendToFile(path+"/redis.conf", "dir "+path+"\n")
 	FileOpt.AppendToFile(path+"/redis.conf", "always-show-logo yes\n")
 	FileOpt.AppendToFile(path+"/redis.conf", "loglevel verbose\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "save 900 1\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "save 300 10\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "save 60 10000\n")
 	s := runtime.GOOS
 	go func() {
 		if s == "windows" {
@@ -140,6 +143,9 @@ func (nodeBuilder) createRedisCluster(port int, ip string, path string) {
 	FileOpt.AppendToFile(path+"/redis.conf", "cluster-node-timeout 5000\n")
 	FileOpt.AppendToFile(path+"/redis.conf", "cluster-config-file "+path+"/nodes.conf\n")
 	FileOpt.AppendToFile(path+"/redis.conf", "replica-announce-ip "+ip+"\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "save 900 1\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "save 300 10\n")
+	FileOpt.AppendToFile(path+"/redis.conf", "save 60 10000\n")
 	s := runtime.GOOS
 	go func() {
 		if s == "windows" {
