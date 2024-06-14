@@ -2,7 +2,7 @@
 
 ## 简介
 
-stormi 框架所原创的代理方案集成了类似 Spring 的容器方案，Springboot 的自动配置方案和 Spring Cloud 的微服务方案的功能，并且更容易使用，功能更强大，可扩展性更强。stormi 原生集成了服务注册与发现，分布式锁，和分布式事务等功能，还提供了一套进程间（跨主机）通信的解决方案，让微服务的开发真正实现跨主机联动，使得多人同时开发同一个功能成为现实，基于该方案本框架实现了 Cooperation 代理用于替代传统的服务注册与发现模式，并且该代理在灵活性、可用性和易用性上优于当前所有的其它方案。该框架已经给各位实现了 Redis 代理，Config 代理，Server 代理，MySQL 代理，Transaction 代理，NSQD 代理和 Cooperation 代理，其中最强大的是 Redis 代理和 Config 代理，这两个代理是最底层的代理，所有的代理都依赖这两个代理，其他开发人员可以使用这两个代理开发自己的代理，同时我希望各位开发人员如果觉得该框架好用的话可以多多开发和开源自己的代理，让我们一起搭建比 Spring 生态更加强大的 stormi 生态。github 链接：https://github.com/stormi-li/stormi
+stormi 框架所原创的代理方案集成了类似 Spring 的容器方案，Springboot 的自动配置方案和 Spring Cloud 的微服务方案的功能，并且更容易使用，功能更强大，可扩展性更强。stormi 原生集成了服务注册与发现，分布式锁，和分布式事务等功能，还提供了一套进程间通信以及跨进程间任务调度的解决方案，让微服务的开发真正实现跨主机联动，使得多人同时开发同一个功能成为现实，基于该方案本框架实现了 Cooperation 代理用于替代传统的服务注册与发现模式。该框架已经给各位实现了 Redis 代理，Config 代理，Server 代理，MySQL 代理，Transaction 代理，NSQD 代理和、Cooperation 代理和Sync代理，其中最强大的是 Redis 代理和 Config 代理，这两个代理是最底层的代理，所有的代理都依赖这两个代理.。github 链接：https://github.com/stormi-li/stormi
 
 ## 使用教程
 
